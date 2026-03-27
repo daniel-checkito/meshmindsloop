@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meshminds Gen · Algorithmic G-Code</title>
+<script src="/nav.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --orange: #FF6B00;
+  --orange-d: #d95800;
+  --orange-glow: rgba(255,107,0,0.18);
+  --orange-pale: #1a0d00;
+  --black: #0a0a0a;
+  --panel: #111111;
+  --panel2: #181818;
+  --border: #252525;
+  --border2: #2f2f2f;
+  --text: #f0f0f0;
+  --muted: #777;
+  --muted2: #555;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --display: 'Bebas Neue', sans-serif;
+  --mono: 'Space Mono', monospace;
+  --body: 'DM Sans', sans-serif;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { background:var(--black); color:var(--text); font-family:var(--body); }
+body { min-height:100vh; overflow-x:hidden; }
+
+/* NOISE OVERLAY */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-size:200px;
+  opacity:0.35;
+}
+
+/* NAV */
+.nav {
+  position:sticky; top:0; z-index:100;
+  background:rgba(10,10,10,0.92); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; height:54px;
+}
+.nav-logo { font-family:var(--display); font-size:1.55rem; letter-spacing:0.06em; line-height:1; }
+.nav-logo span { color:var(--orange); }
+.nav-sub { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.12em; margin-top:2px; }
+.nav-right { display:flex; align-items:center; gap:10px; }
+.nav-pill { font-family:var(--mono); font-size:9px; background:var(--orange-pale); border:1px solid rgba(255,107,0,0.25); color:var(--orange); padding:3px 10px; border-radius:100px; }
+.nav-printer { font-family:var(--mono); font-size:9px; color:var(--muted); border:1px solid var(--border); border-radius:4px; padding:3px 9px; }
+
+/* HERO */
+.hero {
+  background:var(--black); text-align:center;
+  padding:48px 20px 32px; position:relative; overflow:hidden;
+  border-bottom:1px solid var(--border);
+}
+.hero-bg {
+  position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 60% 50% at 50% 0%, rgba(255,107,0,0.08) 0%, transparent 70%);
+}
+.hero h1 { font-family:var(--display); font-size:clamp(2.8rem,8vw,5.5rem); letter-spacing:0.04em; line-height:0.9; margin-bottom:10px; }
+.hero h1 em { color:var(--orange); font-style:normal; display:block; }
+.hero-desc { font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; max-width:420px; margin:0 auto 18px; line-height:1.8; }
+.hero-tags { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+.htag { font-family:var(--mono); font-size:10px; color:var(--muted); border:1px solid var(--border); padding:3px 10px; border-radius:3px; }
+.htag.active { border-color:rgba(255,107,0,0.4); color:var(--orange); background:var(--orange-pale); }
+
+/* MAIN LAYOUT */
+.app {
+  display:grid;
+  grid-template-columns:340px 1fr;
+  min-height:calc(100vh - 54px);
+}
+@media(max-width:900px) { .app { grid-template-columns:1fr; } }
+
+/* SIDEBAR */
+.sidebar {
+  background:var(--panel); border-right:1px solid var(--border);
+  overflow-y:auto; height:calc(100vh - 54px); position:sticky; top:54px;
+}
+.sidebar::-webkit-scrollbar { width:4px; }
+.sidebar::-webkit-scrollbar-track { background:transparent; }
+.sidebar::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+/* SECTION */
+.sec { border-bottom:1px solid var(--border); }
+.sec-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; cursor:pointer; user-select:none;
+  transition:background 0.15s;
+}
+.sec-head:hover { background:var(--panel2); }
+.sec-title { font-family:var(--mono); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text); }
+.sec-title-sub { font-size:9px; color:var(--muted); margin-top:1px; letter-spacing:0.05em; font-weight:400; }
+.sec-arrow { font-size:9px; color:var(--muted); transition:transform 0.18s; }
+.sec-arrow.open { transform:rotate(90deg); }
+.sec-body { padding:16px 18px; display:none; }
+.sec-body.open { display:block; }
+
+/* FIELD */
+.field { margin-bottom:14px; }
+.field:last-child { margin-bottom:0; }
+.lbl { font-family:var(--mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); display:block; margin-bottom:6px; }
+.lbl span { color:var(--orange); font-weight:400; }
+.lbl-hint { color:var(--muted2); font-weight:400; text-transform:none; letter-spacing:0; margin-left:6px; }
+
+/* PATTERN PICKER */
+.pattern-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.pat-btn {
+  background:var(--panel2); border:1.5px solid var(--border);
+  border-radius:6px; padding:10px 6px; cursor:pointer;
+  text-align:center; transition:all 0.15s; touch-action:manipulation;
+}
+.pat-btn:hover { border-color:rgba(255,107,0,0.4); }
+.pat-btn.active { border-color:var(--orange); background:var(--orange-pale); }
+.pat-icon { font-size:18px; display:block; margin-bottom:4px; }
+.pat-name { font-family:var(--mono); font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; display:block; }
+.pat-btn.active .pat-name { color:var(--orange); }
+
+/* SLIDER */
+.sl-row { display:flex; align-items:center; gap:10px; }
+.sl {
+  flex:1; -webkit-appearance:none; height:4px; border-radius:2px;
+  background:var(--border2); outline:none; cursor:pointer;
+}
+.sl::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--orange); cursor:pointer; border:2px solid var(--black); box-shadow:0 0 8px rgba(255,107,0,0.4); }
+.sl::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:var(--orange); border:2px solid var(--black); cursor:pointer; }
+.sl-val { font-family:var(--mono); font-size:11px; color:var(--orange); min-width:42px; text-align:right; font-weight:700; }
+
+/* INPUT */
+input[type=number], select {
+  width:100%; background:var(--panel2); border:1.5px solid var(--border);
+  color:var(--text); font-family:var(--mono); font-size:12px;
+  border-radius:5px; padding:8px 10px; outline:none; transition:border-color 0.15s;
+  -webkit-appearance:none; appearance:none;
+}
+input[type=number]:focus, select:focus { border-color:var(--orange); }
+select {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23777' d='M5 7L1 2h8z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; padding-right:26px; cursor:pointer;
+}
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+/* TOGGLE */
+.tog-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; }
+.tog-label { font-size:12px; color:var(--text); }
+.tog-desc { font-family:var(--mono); font-size:9px; color:var(--muted); margin-top:1px; }
+.tog { position:relative; width:34px; height:18px; flex-shrink:0; }
+.tog input { opacity:0; width:0; height:0; }
+.tog-track { position:absolute; inset:0; background:var(--border2); border-radius:20px; cursor:pointer; transition:background 0.18s; }
+.tog input:checked + .tog-track { background:var(--orange); }
+.tog-track::after { content:''; position:absolute; left:3px; top:3px; width:12px; height:12px; border-radius:50%; background:white; transition:transform 0.18s; }
+.tog input:checked + .tog-track::after { transform:translateX(16px); }
+
+/* PRESET CHIPS */
+.preset-row { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:12px; }
+.pchip {
+  font-family:var(--mono); font-size:9px; background:var(--panel2);
+  border:1px solid var(--border); color:var(--muted); padding:4px 9px;
+  border-radius:3px; cursor:pointer; transition:all 0.12s; touch-action:manipulation;
+}
+.pchip:hover { border-color:var(--orange); color:var(--orange); }
+
+/* GENERATE SECTION */
+.gen-section { padding:16px 18px; }
+.gen-info {
+  background:var(--panel2); border:1px solid var(--border); border-radius:6px;
+  padding:11px 13px; margin-bottom:12px; font-family:var(--mono); font-size:10px;
+  color:var(--muted); line-height:2;
+}
+.gen-info strong { color:var(--orange); }
+.btn-gen {
+  width:100%; background:var(--orange); border:none; color:white;
+  font-family:var(--display); font-size:1.3rem; letter-spacing:0.07em;
+  padding:14px; border-radius:6px; cursor:pointer; transition:all 0.18s;
+  position:relative; overflow:hidden;
+}
+.btn-gen:hover { background:var(--orange-d); transform:translateY(-1px); box-shadow:0 8px 24px rgba(255,107,0,0.3); }
+.btn-gen:active { transform:none; }
+.btn-dl {
+  display:none; width:100%; background:#111; border:1.5px solid var(--ok);
+  color:var(--ok); font-family:var(--display); font-size:1.2rem; letter-spacing:0.06em;
+  padding:13px; border-radius:6px; cursor:pointer; margin-top:8px;
+  text-decoration:none; text-align:center; transition:all 0.18s;
+}
+.btn-dl:hover { background:#0d1f14; }
+
+/* STATS ROW */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:12px; }
+.stat { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:9px 8px; text-align:center; }
+.stat-v { font-family:var(--display); font-size:1.3rem; color:var(--orange); display:block; }
+.stat-l { font-family:var(--mono); font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+
+/* PREVIEW PANE */
+.preview-pane {
+  display:flex; flex-direction:column; background:var(--black);
+  position:relative; min-height:500px;
+}
+.canvas-wrap { flex:1; position:relative; }
+#c3d { display:block; width:100%; height:100%; cursor:grab; }
+#c3d:active { cursor:grabbing; }
+
+/* OVERLAY HUD */
+.hud {
+  position:absolute; top:16px; left:16px;
+  pointer-events:none;
+}
+.hud-pattern { font-family:var(--display); font-size:1.8rem; color:var(--orange); letter-spacing:0.05em; line-height:1; text-shadow:0 0 20px rgba(255,107,0,0.4); }
+.hud-sub { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-top:2px; }
+
+.hud-tr { position:absolute; top:16px; right:16px; text-align:right; pointer-events:none; }
+.hud-coord { font-family:var(--mono); font-size:9px; color:var(--muted2); line-height:2; }
+
+.hud-br { position:absolute; bottom:16px; right:16px; pointer-events:none; }
+.hud-controls { font-family:var(--mono); font-size:9px; color:var(--muted2); text-align:right; line-height:2; }
+
+/* AXIS indicator */
+.axis-badge {
+  position:absolute; bottom:16px; left:16px;
+  font-family:var(--mono); font-size:9px; color:var(--muted2); pointer-events:none;
+}
+
+/* Preview controls */
+.preview-bar {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 16px; border-top:1px solid var(--border);
+  background:var(--panel);
+}
+.pbar-label { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+.pbar-btn {
+  background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+  font-family:var(--mono); font-size:9px; padding:4px 10px; border-radius:3px;
+  cursor:pointer; transition:all 0.12s; touch-action:manipulation;
+}
+.pbar-btn:hover { border-color:var(--orange); color:var(--orange); }
+.pbar-btn.active { background:var(--orange-pale); border-color:var(--orange); color:var(--orange); }
+.pbar-sep { width:1px; height:16px; background:var(--border); flex-shrink:0; }
+.layer-sl { flex:1; -webkit-appearance:none; height:3px; background:var(--border2); border-radius:2px; cursor:pointer; max-width:200px; }
+.layer-sl::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--orange); cursor:pointer; }
+.layer-val { font-family:var(--mono); font-size:10px; color:var(--muted); min-width:60px; }
+
+/* LOG */
+.log-box {
+  background:var(--panel2); border-top:1px solid var(--border);
+  max-height:80px; overflow-y:auto; padding:8px 16px;
+  font-family:var(--mono); font-size:9px; display:none;
+}
+.log-box.vis { display:block; }
+.ll { line-height:1.9; }
+.ll.ok { color:var(--ok); }
+.ll.info { color:var(--orange); }
+.ll.warn { color:var(--warn); }
+
+@media(max-width:900px) {
+  .app { grid-template-columns:1fr; }
+  .sidebar { height:auto; position:static; }
+  .preview-pane { min-height:60vw; }
+}
+@media(max-width:480px) { .nav { padding:0 14px; } }
+</style>
+</head>
+<body>
+
+
+<div class="hero">
+  <div class="hero-bg"></div>
+  <h1>Generative<em>3D Forms</em></h1>
+  <p class="hero-desc">Parametric G-code. No slicer. No STL. Pure math → printer.<br>Vases · Lampshades · Wave bowls · Twisted towers</p>
+  <div class="hero-tags">
+    <span class="htag active">Gyroid infill</span>
+    <span class="htag active">Wave surface</span>
+    <span class="htag active">Spiral vase</span>
+    <span class="htag active">Twist lattice</span>
+    <span class="htag">No mesh needed</span>
+    <span class="htag">Direct toolpath</span>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Pattern Picker -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <div>
+          <div class="sec-title">01 · Pattern</div>
+          <div class="sec-title-sub">Choose your generative algorithm</div>
+        </div>
+        <span class="sec-arrow open">▶</span>
+      </div>
+      <div class="sec-body open">
+        <div class="pattern-grid" id="patGrid">
+          <div class="pat-btn active" data-pat="vase_wave" onclick="selectPat(this)">
+            <span class="pat-icon">〰️</span>
+            <span class="pat-name">Wave Vase</span>
+          </div>
+          <div class="pat-btn" data-pat="spiral_tower" onclick="selectPat(this)">
+            <span class="pat-icon">🌀</span>
+            <span class="pat-name">Spiral Tower</span>
+          </div>
+          <div class="pat-btn" data-pat="gyroid" onclick="selectPat(this)">
+            <span class="pat-icon">⬡</span>
+            <span class="pat-name">Gyroid Shell</span>
+          </div>
+          <div class="pat-btn" data-pat="voronoi_lamp" onclick="selectPat(this)">
+            <span class="pat-icon">💡</span>
+            <span class="pat-name">Voronoi Lamp</span>
+          </div>
+          <div class="pat-btn" data-pat="sine_bowl" onclick="selectPat(this)">
+            <span class="pat-icon">🥣</span>
+            <span class="pat-name">Sine Bowl</span>
+          </div>
+          <div class="pat-btn" data-pat="twist_vase" onclick="selectPat(this)">
+            <span class="pat-icon">🔩</span>
+            <span class="pat-name">Twist Vase</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <div>
+          <div class="sec-title">02 · Form & Size</div>
+          <div class="sec-title-sub">Dimensions and layer structure</div>
+        </div>
+        <span class="sec-arrow open">▶</span>
+      </div>
+      <div class="sec-body open">
+        <div class="preset-row" id="presetRow">
+          <span class="pchip" onclick="applyPreset('small_vase')">Mini Vase</span>
+          <span class="pchip" onclick="applyPreset('tall_vase')">Tall Vase</span>
+          <span class="pchip" onclick="applyPreset('lampshade')">Lampshade</span>
+          <span class="pchip" onclick="applyPreset('bowl')">Bowl</span>
+          <span class="pchip" onclick="applyPreset('tower')">Tower</span>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="lbl">Diameter <span>(mm)</span></label>
+            <input type="number" id="pDiam" value="80" min="20" max="220" step="5" oninput="onParamChange()" />
+          </div>
+          <div class="field">
+            <label class="lbl">Height <span>(mm)</span></label>
+            <input type="number" id="pHeight" value="120" min="10" max="250" step="5" oninput="onParamChange()" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Layer height <span id="layerHVal">0.2mm</span></label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pLayerH" min="0.1" max="0.4" step="0.05" value="0.2" oninput="slUpdate('layerHVal',this.value,'mm');onParamChange()">
+            <span class="sl-val" id="layerHValB">0.2mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Wall thickness <span id="wallVal">0.8mm</span></label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pWall" min="0.4" max="3.0" step="0.2" value="0.8" oninput="slUpdate('wallVal',this.value,'mm');onParamChange()">
+            <span class="sl-val" id="wallValB">0.8mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Segments per layer</label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pSegs" min="32" max="180" step="8" value="72" oninput="slUpdate('segsValB',this.value,'');onParamChange()">
+            <span class="sl-val" id="segsValB">72</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pattern Parameters -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <div>
+          <div class="sec-title">03 · Pattern Parameters</div>
+          <div class="sec-title-sub" id="patParamSub">Wave frequency, amplitude, twist</div>
+        </div>
+        <span class="sec-arrow open">▶</span>
+      </div>
+      <div class="sec-body open" id="patParams">
+        <!-- Rendered dynamically per pattern -->
+      </div>
+    </div>
+
+    <!-- Print Settings -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <div>
+          <div class="sec-title">04 · Print Settings</div>
+          <div class="sec-title-sub">Temperature, speed, retraction</div>
+        </div>
+        <span class="sec-arrow">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="grid-2">
+          <div class="field">
+            <label class="lbl">Nozzle temp <span>(°C)</span></label>
+            <input type="number" id="pNozzle" value="215" min="170" max="270" step="5" />
+          </div>
+          <div class="field">
+            <label class="lbl">Bed temp <span>(°C)</span></label>
+            <input type="number" id="pBed" value="60" min="40" max="100" step="5" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Print speed <span id="speedVal">45mm/s</span></label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pSpeed" min="20" max="120" step="5" value="45" oninput="slUpdate('speedVal',this.value,'mm/s')">
+            <span class="sl-val" id="speedValB">45mm/s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">First layer speed <span id="flSpeedVal">20mm/s</span></label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pFLSpeed" min="10" max="50" step="5" value="20" oninput="slUpdate('flSpeedVal',this.value,'mm/s')">
+            <span class="sl-val" id="flSpeedValB">20mm/s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Fan speed <span id="fanVal">70%</span></label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pFan" min="0" max="100" step="10" value="70" oninput="slUpdate('fanVal',this.value,'%')">
+            <span class="sl-val" id="fanValB">70%</span>
+          </div>
+        </div>
+        <div class="tog-row">
+          <div><div class="tog-label">Vase mode (spiral)</div><div class="tog-desc">Single wall, continuous Z — no layer seams</div></div>
+          <label class="tog"><input type="checkbox" id="pVaseMode" checked onchange="onParamChange()"><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div><div class="tog-label">Bed adhesion base</div><div class="tog-desc">5 solid bottom layers before generative geometry</div></div>
+          <label class="tog"><input type="checkbox" id="pBase" checked><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div><div class="tog-label">Retraction</div><div class="tog-desc">Enable retraction on travel moves</div></div>
+          <label class="tog"><input type="checkbox" id="pRetract" checked><div class="tog-track"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate -->
+    <div class="gen-section">
+      <div class="stats-row" id="statsRow">
+        <div class="stat"><span class="stat-v" id="sLayers">—</span><span class="stat-l">Layers</span></div>
+        <div class="stat"><span class="stat-v" id="sTime">—</span><span class="stat-l">Est. Time</span></div>
+        <div class="stat"><span class="stat-v" id="sFilament">—</span><span class="stat-l">Filament</span></div>
+      </div>
+      <div class="gen-info" id="genInfo">
+        Select a pattern and adjust parameters above, then generate your G-code. The live 3D preview updates in real-time.
+      </div>
+      <button class="btn-gen" onclick="generateGcode()">Generate G-Code →</button>
+      <a class="btn-dl" id="btnDl" download="">⬇ Download .gcode</a>
+    </div>
+  </div>
+
+  <!-- PREVIEW PANE -->
+  <div class="preview-pane">
+    <div class="canvas-wrap">
+      <canvas id="c3d"></canvas>
+
+      <div class="hud">
+        <div class="hud-pattern" id="hudPattern">WAVE VASE</div>
+        <div class="hud-sub" id="hudSub">80mm ø · 120mm tall · 72 segs</div>
+      </div>
+
+      <div class="hud-tr">
+        <div class="hud-coord" id="hudCoord">
+          X: 128.0<br>Y: 128.0<br>Z: 0.0<br>
+        </div>
+      </div>
+
+      <div class="axis-badge" id="axisBadge">Drag to rotate · Scroll to zoom</div>
+
+      <div class="hud-br">
+        <div class="hud-controls">Rotate · Scroll zoom</div>
+      </div>
+    </div>
+
+    <div class="preview-bar">
+      <span class="pbar-label">View</span>
+      <button class="pbar-btn active" id="btnSolid" onclick="setViewMode('solid')">Solid</button>
+      <button class="pbar-btn" id="btnWire" onclick="setViewMode('wire')">Wireframe</button>
+      <button class="pbar-btn" id="btnToolpath" onclick="setViewMode('toolpath')">Toolpath</button>
+      <div class="pbar-sep"></div>
+      <span class="pbar-label">Layer</span>
+      <input type="range" class="layer-sl" id="layerSlider" min="0" max="100" value="100" oninput="onLayerSlider(this.value)">
+      <span class="layer-val" id="layerVal">All layers</span>
+      <div class="pbar-sep"></div>
+      <button class="pbar-btn" onclick="resetCam()">Reset cam</button>
+    </div>
+
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let currentPat = 'vase_wave';
+let viewMode = 'solid';
+let layerPct = 100;
+let generatedPoints = []; // [{x,y,z,e,layer}]
+let rotX = -0.4, rotY = 0.3, zoom = 1.0;
+let isDragging = false, lastMX = 0, lastMY = 0;
+let animId = null;
+let autoRotate = true;
+
+// Pattern-specific params (defaults)
+const patState = {
+  vase_wave:     { freq:4, amp:8, phase:0, taper:0.2 },
+  spiral_tower:  { freq:2, amp:5, twist:90, taper:0.15 },
+  gyroid:        { freq:3, amp:6, blend:0.5, taper:0 },
+  voronoi_lamp:  { freq:5, amp:4, density:8, taper:0.3 },
+  sine_bowl:     { freq:6, amp:5, depth:0.6, flare:0.4 },
+  twist_vase:    { freq:3, amp:6, twist:180, bulge:0.3 },
+};
+
+// ═══════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════
+function toggleSec(head) {
+  const body = head.nextElementSibling;
+  const arrow = head.querySelector('.sec-arrow');
+  const open = body.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+function slUpdate(id, val, suffix) {
+  const v = parseFloat(val);
+  const fv = Number.isInteger(v) ? v : v.toFixed(v < 1 ? 2 : 1);
+  document.getElementById(id).textContent = fv + suffix;
+  const bId = id + 'B';
+  if (document.getElementById(bId)) document.getElementById(bId).textContent = fv + suffix;
+}
+
+function selectPat(btn) {
+  document.querySelectorAll('.pat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPat = btn.dataset.pat;
+  renderPatParams();
+  onParamChange();
+}
+
+function renderPatParams() {
+  const pp = document.getElementById('patParams');
+  const sub = document.getElementById('patParamSub');
+  const s = patState[currentPat];
+  const patNames = {
+    vase_wave:'Wave Vase', spiral_tower:'Spiral Tower', gyroid:'Gyroid Shell',
+    voronoi_lamp:'Voronoi Lamp', sine_bowl:'Sine Bowl', twist_vase:'Twist Vase'
+  };
+  document.getElementById('hudPattern').textContent = (patNames[currentPat]||'').toUpperCase();
+
+  const defs = {
+    vase_wave: [
+      { id:'pFreq', label:'Wave frequency', min:1, max:16, step:1, val:s.freq, suffix:' waves', key:'freq' },
+      { id:'pAmp', label:'Wave amplitude (mm)', min:1, max:30, step:0.5, val:s.amp, suffix:'mm', key:'amp' },
+      { id:'pPhase', label:'Phase offset (°)', min:0, max:360, step:10, val:s.phase, suffix:'°', key:'phase' },
+      { id:'pTaper', label:'Top taper', min:0, max:0.8, step:0.05, val:s.taper, suffix:'', key:'taper' },
+    ],
+    spiral_tower: [
+      { id:'pFreq', label:'Flute count', min:2, max:12, step:1, val:s.freq, suffix:'', key:'freq' },
+      { id:'pAmp', label:'Flute depth (mm)', min:1, max:20, step:0.5, val:s.amp, suffix:'mm', key:'amp' },
+      { id:'pTwist', label:'Total twist (°)', min:0, max:720, step:30, val:s.twist, suffix:'°', key:'twist' },
+      { id:'pTaper', label:'Taper', min:0, max:0.7, step:0.05, val:s.taper, suffix:'', key:'taper' },
+    ],
+    gyroid: [
+      { id:'pFreq', label:'Frequency', min:1, max:8, step:0.5, val:s.freq, suffix:'', key:'freq' },
+      { id:'pAmp', label:'Amplitude (mm)', min:1, max:20, step:0.5, val:s.amp, suffix:'mm', key:'amp' },
+      { id:'pBlend', label:'Blend factor', min:0, max:1, step:0.05, val:s.blend, suffix:'', key:'blend' },
+      { id:'pTaper', label:'Taper', min:0, max:0.6, step:0.05, val:s.taper, suffix:'', key:'taper' },
+    ],
+    voronoi_lamp: [
+      { id:'pFreq', label:'Cell frequency', min:2, max:12, step:1, val:s.freq, suffix:'', key:'freq' },
+      { id:'pAmp', label:'Cell depth (mm)', min:1, max:15, step:0.5, val:s.amp, suffix:'mm', key:'amp' },
+      { id:'pDensity', label:'Density', min:3, max:20, step:1, val:s.density, suffix:'', key:'density' },
+      { id:'pTaper', label:'Taper', min:0, max:0.8, step:0.05, val:s.taper, suffix:'', key:'taper' },
+    ],
+    sine_bowl: [
+      { id:'pFreq', label:'Ripple frequency', min:2, max:20, step:1, val:s.freq, suffix:'', key:'freq' },
+      { id:'pAmp', label:'Ripple amplitude (mm)', min:0.5, max:15, step:0.5, val:s.amp, suffix:'mm', key:'amp' },
+      { id:'pDepth', label:'Bowl depth', min:0.2, max:1.0, step:0.05, val:s.depth, suffix:'', key:'depth' },
+      { id:'pFlare', label:'Rim flare', min:0, max:1, step:0.05, val:s.flare, suffix:'', key:'flare' },
+    ],
+    twist_vase: [
+      { id:'pFreq', label:'Rib count', min:2, max:12, step:1, val:s.freq, suffix:'', key:'freq' },
+      { id:'pAmp', label:'Rib depth (mm)', min:1, max:20, step:0.5, val:s.amp, suffix:'mm', key:'amp' },
+      { id:'pTwist', label:'Total twist (°)', min:0, max:720, step:30, val:s.twist, suffix:'°', key:'twist' },
+      { id:'pBulge', label:'Belly bulge', min:0, max:0.8, step:0.05, val:s.bulge, suffix:'', key:'bulge' },
+    ],
+  };
+
+  const params = defs[currentPat] || [];
+  sub.textContent = params.map(p => p.label).slice(0,3).join(', ');
+
+  pp.innerHTML = params.map(p => {
+    const dispVal = p.step < 1 ? Number(p.val).toFixed(p.step < 0.1 ? 2 : 1) : Math.round(p.val);
+    return `
+    <div class="field">
+      <label class="lbl">${p.label} <span id="${p.id}Val">${dispVal}${p.suffix}</span></label>
+      <div class="sl-row">
+        <input type="range" class="sl" id="${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.val}"
+          oninput="updatePatParam('${currentPat}','${p.key}',parseFloat(this.value),'${p.id}Val','${p.suffix}');onParamChange()">
+        <span class="sl-val" id="${p.id}ValB">${dispVal}${p.suffix}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updatePatParam(pat, key, val, displayId, suffix) {
+  patState[pat][key] = val;
+  const dispVal = val < 1 && val > 0 ? val.toFixed(2) : (Number.isInteger(val) ? val : val.toFixed(1));
+  document.getElementById(displayId).textContent = dispVal + suffix;
+  const bId = displayId + 'B';
+  if (document.getElementById(bId)) document.getElementById(bId).textContent = dispVal + suffix;
+}
+
+function applyPreset(preset) {
+  const presets = {
+    small_vase: { diam:60, height:90, pat:'vase_wave', layerH:0.2 },
+    tall_vase:  { diam:70, height:200, pat:'vase_wave', layerH:0.25 },
+    lampshade:  { diam:140, height:120, pat:'voronoi_lamp', layerH:0.2 },
+    bowl:       { diam:160, height:60, pat:'sine_bowl', layerH:0.2 },
+    tower:      { diam:50, height:240, pat:'spiral_tower', layerH:0.2 },
+  };
+  const p = presets[preset]; if (!p) return;
+  document.getElementById('pDiam').value = p.diam;
+  document.getElementById('pHeight').value = p.height;
+  document.getElementById('pLayerH').value = p.layerH;
+  slUpdate('layerHVal', p.layerH, 'mm');
+  document.querySelectorAll('.pat-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.pat === p.pat);
+  });
+  currentPat = p.pat;
+  renderPatParams();
+  onParamChange();
+}
+
+// ═══════════════════════════════════════════════════
+// GEOMETRY ENGINE
+// ═══════════════════════════════════════════════════
+function getParams() {
+  const s = patState[currentPat];
+  return {
+    diam: parseFloat(document.getElementById('pDiam').value) || 80,
+    height: parseFloat(document.getElementById('pHeight').value) || 120,
+    layerH: parseFloat(document.getElementById('pLayerH').value) || 0.2,
+    wall: parseFloat(document.getElementById('pWall').value) || 0.8,
+    segs: parseInt(document.getElementById('pSegs').value) || 72,
+    vaseMode: document.getElementById('pVaseMode').checked,
+    ...s,
+  };
+}
+
+// Radius function: returns radius at angle theta and normalized height t [0..1]
+function getRadius(t, theta, p) {
+  const R = p.diam / 2;
+  let taper = 1 - (p.taper || 0) * t;
+  let r = R * taper;
+
+  switch(currentPat) {
+    case 'vase_wave': {
+      const wave = p.amp * Math.sin(p.freq * theta + (p.phase * Math.PI/180));
+      return r + wave;
+    }
+    case 'spiral_tower': {
+      const twistRad = (p.twist || 0) * Math.PI / 180;
+      const angle = theta + twistRad * t;
+      const flute = p.amp * Math.cos(p.freq * angle);
+      return r + flute;
+    }
+    case 'gyroid': {
+      const wave1 = Math.sin(p.freq * theta) * Math.cos(p.freq * t * Math.PI * 2);
+      const wave2 = Math.sin(p.freq * t * Math.PI * 2) * Math.cos(p.freq * theta);
+      const g = p.amp * (wave1 + wave2) * 0.5;
+      return r + g * (1 - p.blend * Math.abs(wave1));
+    }
+    case 'voronoi_lamp': {
+      // Approximate Voronoi with sum of radial sin waves at irregular phases
+      let v = 0;
+      for (let k = 1; k <= p.density; k++) {
+        const phase = k * 2.399; // golden angle
+        v += Math.sin(p.freq * theta + phase) * Math.cos(k * t * Math.PI);
+      }
+      return r + p.amp * (v / p.density) * 2;
+    }
+    case 'sine_bowl': {
+      const bowl = p.depth * R * Math.pow(1 - t, 0.5); // bowl profile
+      const ripple = p.amp * Math.sin(p.freq * theta) * t;
+      const flare = p.flare * R * Math.pow(t, 2);
+      return bowl + ripple + flare;
+    }
+    case 'twist_vase': {
+      const twistRad = (p.twist || 0) * Math.PI / 180;
+      const angle = theta + twistRad * t;
+      const rib = p.amp * Math.sin(p.freq * angle);
+      const belly = p.bulge * R * Math.sin(t * Math.PI);
+      return r + rib + belly * 0.3;
+    }
+    default: return r;
+  }
+}
+
+function buildPoints(maxLayer) {
+  const p = getParams();
+  const layers = Math.floor(p.height / p.layerH);
+  const segs = p.segs;
+  const cx = 128, cy = 128; // center of bed
+  const pts = [];
+
+  const useLayers = maxLayer !== undefined ? Math.min(layers, maxLayer) : layers;
+
+  for (let li = 0; li < useLayers; li++) {
+    const t = li / Math.max(1, layers - 1);
+    const z = (li + 1) * p.layerH;
+    for (let si = 0; si < segs; si++) {
+      const theta = (si / segs) * Math.PI * 2;
+      const r = Math.max(0.5, getRadius(t, theta, p));
+      const x = cx + r * Math.cos(theta);
+      const y = cy + r * Math.sin(theta);
+      pts.push({ x, y, z, layer: li });
+    }
+  }
+  return { pts, layers, segs };
+}
+
+function computeStats() {
+  const p = getParams();
+  const layers = Math.floor(p.height / p.layerH);
+  const segs = p.segs;
+  const speed = parseInt(document.getElementById('pSpeed').value) || 45;
+  // Estimate perimeter per layer (average circumference)
+  const avgR = p.diam / 2;
+  const perim = 2 * Math.PI * avgR;
+  const totalMoves = layers * segs;
+  const totalDist = layers * perim;
+  const travelSec = totalDist / speed;
+  const travelMin = Math.round(travelSec / 60);
+  const h = Math.floor(travelMin / 60), m = travelMin % 60;
+  const timeStr = h > 0 ? `${h}h${m}m` : `${m}m`;
+  const filmm = totalDist * 0.0417; // rough filament mm
+  const filmG = (filmm * 0.0024).toFixed(1);
+  document.getElementById('sLayers').textContent = layers;
+  document.getElementById('sTime').textContent = timeStr;
+  document.getElementById('sFilament').textContent = filmG + 'g';
+  document.getElementById('genInfo').innerHTML =
+    `<strong>${(patNames[currentPat]||currentPat)}</strong> · ${p.diam}mm ø · ${p.height}mm tall<br>` +
+    `${layers} layers · ${segs} segments/layer · ${(totalDist/1000).toFixed(1)}m toolpath`;
+  document.getElementById('hudSub').textContent = `${p.diam}mm ø · ${p.height}mm · ${segs} segs`;
+}
+const patNames = {
+  vase_wave:'Wave Vase', spiral_tower:'Spiral Tower', gyroid:'Gyroid Shell',
+  voronoi_lamp:'Voronoi Lamp', sine_bowl:'Sine Bowl', twist_vase:'Twist Vase'
+};
+
+// ═══════════════════════════════════════════════════
+// 3D RENDERER (canvas)
+// ═══════════════════════════════════════════════════
+const canvas = document.getElementById('c3d');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+
+function project(x, y, z, p) {
+  // Center on origin
+  const cx = 128, cy = 128;
+  const lx = x - cx, ly = y - cy, lz = z - p.height / 2;
+  // Rotate Y
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const rx = lx * cosY - lz * sinY;
+  const rz = lx * sinY + lz * cosY;
+  // Rotate X
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const ry2 = ly * cosX - rz * sinX;
+  const rz2 = ly * sinX + rz * cosX;
+  // Perspective
+  const fov = 400 * zoom;
+  const dist = 600;
+  const scale = fov / (dist + rz2);
+  const sx = canvas.width / 2 + rx * scale;
+  const sy = canvas.height / 2 - ry2 * scale;
+  return { sx, sy, z: rz2, scale };
+}
+
+function draw() {
+  const p = getParams();
+  const maxLayer = Math.round(layerPct / 100 * Math.floor(p.height / p.layerH));
+  const { pts, layers, segs } = buildPoints(maxLayer);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background grid
+  drawGrid(p);
+
+  if (pts.length === 0) return;
+
+  const totalLayers = Math.floor(p.height / p.layerH);
+
+  if (viewMode === 'toolpath') {
+    // Draw as continuous path colored by Z
+    ctx.lineWidth = 1;
+    for (let li = 0; li < maxLayer; li++) {
+      const t = li / Math.max(1, totalLayers - 1);
+      const hue = 20 + t * 40; // orange to yellow
+      ctx.strokeStyle = `hsla(${hue},100%,55%,0.7)`;
+      ctx.beginPath();
+      let first = true;
+      for (let si = 0; si <= segs; si++) {
+        const idx = li * segs + (si % segs);
+        if (idx >= pts.length) break;
+        const pt = pts[idx];
+        const proj = project(pt.x, pt.y, pt.z, p);
+        if (first) { ctx.moveTo(proj.sx, proj.sy); first = false; }
+        else ctx.lineTo(proj.sx, proj.sy);
+      }
+      ctx.stroke();
+    }
+  } else {
+    // Build faces for solid or wireframe
+    const faces = [];
+    for (let li = 0; li < maxLayer - 1; li++) {
+      for (let si = 0; si < segs; si++) {
+        const i0 = li * segs + si;
+        const i1 = li * segs + (si + 1) % segs;
+        const i2 = (li + 1) * segs + (si + 1) % segs;
+        const i3 = (li + 1) * segs + si;
+        if (i0 >= pts.length || i1 >= pts.length || i2 >= pts.length || i3 >= pts.length) continue;
+        const a = pts[i0], b = pts[i1], c = pts[i2], d = pts[i3];
+        const pa = project(a.x, a.y, a.z, p);
+        const pb = project(b.x, b.y, b.z, p);
+        const pc = project(c.x, c.y, c.z, p);
+        const pd = project(d.x, d.y, d.z, p);
+        // Avg depth for sorting
+        const avgZ = (pa.z + pb.z + pc.z + pd.z) / 4;
+        // Normal (for lighting)
+        const nx = (b.x - a.x), ny = (b.y - a.y), nz = 0;
+        const mx = (d.x - a.x), my = (d.y - a.y), mz = 0.5;
+        const cross_x = ny * mz - nz * my;
+        const cross_y = nz * mx - nx * mz;
+        const cross_z = nx * my - ny * mx;
+        const len = Math.sqrt(cross_x**2 + cross_y**2 + cross_z**2) || 1;
+        const light = (cross_x * 0.3 + cross_y * 0.5 + cross_z * 0.8) / len;
+        const t = li / Math.max(1, totalLayers - 1);
+        faces.push({ pa, pb, pc, pd, avgZ, light, t });
+      }
+    }
+    // Sort back to front
+    faces.sort((a, b) => b.avgZ - a.avgZ);
+
+    for (const f of faces) {
+      const { pa, pb, pc, pd, light, t } = f;
+      ctx.beginPath();
+      ctx.moveTo(pa.sx, pa.sy);
+      ctx.lineTo(pb.sx, pb.sy);
+      ctx.lineTo(pc.sx, pc.sy);
+      ctx.lineTo(pd.sx, pd.sy);
+      ctx.closePath();
+
+      if (viewMode === 'solid') {
+        const l = Math.max(0, Math.min(1, (light + 1) * 0.5));
+        const bright = Math.round(30 + l * 60);
+        const sat = Math.round(70 + l * 30);
+        const hue = 18 + t * 25;
+        ctx.fillStyle = `hsl(${hue},${sat}%,${bright}%)`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(0,0,0,0.15)`;
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = `rgba(255,107,0,0.3)`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+
+    // Draw top cap ring
+    if (maxLayer >= 2) {
+      const li = maxLayer - 1;
+      ctx.beginPath();
+      let first = true;
+      for (let si = 0; si <= segs; si++) {
+        const idx = li * segs + (si % segs);
+        if (idx >= pts.length) break;
+        const pt = pts[idx];
+        const proj = project(pt.x, pt.y, pt.z, p);
+        if (first) { ctx.moveTo(proj.sx, proj.sy); first = false; }
+        else ctx.lineTo(proj.sx, proj.sy);
+      }
+      ctx.strokeStyle = viewMode === 'solid' ? 'rgba(255,107,0,0.8)' : 'rgba(255,107,0,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  // HUD coord update (first visible point)
+  if (pts.length > 0) {
+    const mid = pts[Math.floor(pts.length / 2)];
+    document.getElementById('hudCoord').innerHTML =
+      `X: ${mid.x.toFixed(1)}<br>Y: ${mid.y.toFixed(1)}<br>Z: ${mid.z.toFixed(2)}<br>Layer: ${Math.round(layerPct / 100 * maxLayer)}/${totalLayers}`;
+  }
+}
+
+function drawGrid(p) {
+  // Faint grid lines
+  const size = 260;
+  const step = 64;
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  for (let i = -size/2; i <= size/2; i += step) {
+    // Horizontal line
+    const a = project(128 + i, 128 - size/2, 0, p);
+    const b = project(128 + i, 128 + size/2, 0, p);
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    const c = project(128 - size/2, 128 + i, 0, p);
+    const d = project(128 + size/2, 128 + i, 0, p);
+    ctx.beginPath(); ctx.moveTo(c.sx, c.sy); ctx.lineTo(d.sx, d.sy); ctx.stroke();
+  }
+  // Bed border
+  ctx.strokeStyle = 'rgba(255,107,0,0.12)';
+  ctx.lineWidth = 1;
+  const corners = [[0,0],[256,0],[256,256],[0,256],[0,0]];
+  ctx.beginPath();
+  corners.forEach(([bx, by], i) => {
+    const proj = project(bx, by, 0, p);
+    if (i === 0) ctx.moveTo(proj.sx, proj.sy); else ctx.lineTo(proj.sx, proj.sy);
+  });
+  ctx.stroke();
+  // Bed label
+  const bl = project(10, 10, 0, p);
+  ctx.fillStyle = 'rgba(255,107,0,0.25)';
+  ctx.font = '9px "Space Mono"';
+  ctx.fillText('A1 256×256', bl.sx, bl.sy);
+}
+
+function render() {
+  resize();
+  draw();
+  if (autoRotate && !isDragging) {
+    rotY += 0.003;
+  }
+  animId = requestAnimationFrame(render);
+}
+
+// ═══════════════════════════════════════════════════
+// CAMERA CONTROLS
+// ═══════════════════════════════════════════════════
+canvas.addEventListener('mousedown', e => { isDragging = true; lastMX = e.clientX; lastMY = e.clientY; autoRotate = false; });
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  rotY += (e.clientX - lastMX) * 0.005;
+  rotX += (e.clientY - lastMY) * 0.005;
+  rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+  lastMX = e.clientX; lastMY = e.clientY;
+});
+canvas.addEventListener('wheel', e => {
+  zoom *= e.deltaY > 0 ? 0.92 : 1.08;
+  zoom = Math.max(0.3, Math.min(3, zoom));
+  autoRotate = false; e.preventDefault();
+}, { passive:false });
+
+// Touch
+let lastTouchX = 0, lastTouchY = 0, lastPinchDist = 0;
+canvas.addEventListener('touchstart', e => {
+  autoRotate = false;
+  if (e.touches.length === 1) { lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; }
+  if (e.touches.length === 2) { lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+}, { passive:true });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1) {
+    rotY += (e.touches[0].clientX - lastTouchX) * 0.007;
+    rotX += (e.touches[0].clientY - lastTouchY) * 0.007;
+    rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+    lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+  }
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    zoom *= d / lastPinchDist; zoom = Math.max(0.3, Math.min(3, zoom)); lastPinchDist = d;
+  }
+  e.preventDefault();
+}, { passive:false });
+
+function resetCam() { rotX = -0.4; rotY = 0.3; zoom = 1; autoRotate = true; }
+function setViewMode(m) {
+  viewMode = m;
+  document.querySelectorAll('.pbar-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + m.charAt(0).toUpperCase() + m.slice(1)).classList.add('active');
+}
+function onLayerSlider(v) {
+  layerPct = parseInt(v);
+  const p = getParams();
+  const layers = Math.floor(p.height / p.layerH);
+  const shown = Math.round(layerPct / 100 * layers);
+  document.getElementById('layerVal').textContent = layerPct === 100 ? 'All layers' : `Layer ${shown}/${layers}`;
+}
+
+// ═══════════════════════════════════════════════════
+// PARAM CHANGE DEBOUNCE
+// ═══════════════════════════════════════════════════
+let paramTimer = null;
+function onParamChange() {
+  clearTimeout(paramTimer);
+  paramTimer = setTimeout(() => { computeStats(); }, 80);
+}
+
+// ═══════════════════════════════════════════════════
+// G-CODE GENERATOR
+// ═══════════════════════════════════════════════════
+function log(type, msg) {
+  const box = document.getElementById('logBox');
+  box.classList.add('vis');
+  const d = document.createElement('div');
+  d.className = 'll ' + type;
+  d.textContent = ({ok:'✓',info:'→',warn:'⚠'}[type]||'·') + ' ' + msg;
+  box.appendChild(d); box.scrollTop = box.scrollHeight;
+}
+
+function generateGcode() {
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('logBox').classList.remove('vis');
+  document.getElementById('btnDl').style.display = 'none';
+
+  const p = getParams();
+  const nozzle = parseInt(document.getElementById('pNozzle').value) || 215;
+  const bed = parseInt(document.getElementById('pBed').value) || 60;
+  const speed = parseInt(document.getElementById('pSpeed').value) || 45;
+  const flSpeed = parseInt(document.getElementById('pFLSpeed').value) || 20;
+  const fan = parseInt(document.getElementById('pFan').value) || 70;
+  const fanVal = Math.round(fan * 255 / 100);
+  const withBase = document.getElementById('pBase').checked;
+  const retract = document.getElementById('pRetract').checked;
+  const vaseMode = document.getElementById('pVaseMode').checked;
+
+  const cx = 128, cy = 128;
+  const layers = Math.floor(p.height / p.layerH);
+  const segs = p.segs;
+  const nozzleDiam = 0.4;
+  const filDiam = 1.75;
+  const extPerMM = (nozzleDiam * p.layerH) / ((Math.PI / 4) * filDiam * filDiam);
+
+  log('info', `Generating ${patNames[currentPat]} · ${p.diam}mm ø · ${p.height}mm · ${layers} layers`);
+
+  let g = '';
+  // HEADER
+  g += `; MeshmindsGen - Algorithmic G-Code Generator\n`;
+  g += `; Pattern: ${patNames[currentPat]}\n`;
+  g += `; Diameter: ${p.diam}mm  Height: ${p.height}mm  Layers: ${layers}\n`;
+  g += `; Layer height: ${p.layerH}mm  Segments: ${segs}\n`;
+  g += `; Generated: ${new Date().toISOString()}\n`;
+  g += `; Printer: Bambu Lab A1 (256x256mm bed)\n`;
+  g += `; @meshminds3d\n`;
+  g += `;\n`;
+
+  // STARTUP
+  g += `; --- STARTUP ---\n`;
+  g += `G28                    ; Home all axes\n`;
+  g += `M140 S${bed}           ; Set bed temp\n`;
+  g += `M104 S${nozzle}        ; Set nozzle temp\n`;
+  g += `M190 S${bed}           ; Wait for bed\n`;
+  g += `M109 S${nozzle}        ; Wait for nozzle\n`;
+  g += `G92 E0                 ; Reset extruder\n`;
+  g += `M83                    ; Relative extrusion\n`;
+  g += `G90                    ; Absolute positioning\n`;
+  g += `M220 S100              ; Feed rate 100%\n`;
+  g += `M221 S100              ; Flow rate 100%\n`;
+  g += `; Purge line\n`;
+  g += `G1 X5 Y5 Z0.3 F5000\n`;
+  g += `G1 X60 E4 F1200\n`;
+  g += `G1 Z5 F3000\n`;
+  g += `G92 E0\n`;
+  g += `\n`;
+
+  let E = 0;
+  const fSpeedMMS = speed;
+  const fSpeedMMM = speed * 60;
+  const flSpeedMMM = flSpeed * 60;
+
+  // BASE LAYERS (solid discs)
+  if (withBase) {
+    log('ok', 'Building base layers...');
+    const baseLayers = 5;
+    const baseR = p.diam / 2;
+    for (let li = 0; li < baseLayers; li++) {
+      const z = (li + 1) * p.layerH;
+      const fr = li === 0 ? flSpeedMMM : fSpeedMMM;
+      g += `; Base layer ${li+1}\n`;
+      if (li === 0) g += `M106 S0\n`; // fan off for first layers
+      if (li === 2) g += `M106 S${Math.round(fanVal * 0.5)}\n`; // half fan
+      // Spiral inward from outer radius
+      for (let r = baseR; r > 0; r -= nozzleDiam * 1.05) {
+        const numSegs = Math.max(12, Math.round(2 * Math.PI * r / nozzleDiam));
+        for (let si = 0; si <= numSegs; si++) {
+          const theta = (si / numSegs) * Math.PI * 2;
+          const x = cx + r * Math.cos(theta);
+          const y = cy + r * Math.sin(theta);
+          const dist = 2 * Math.PI * r / numSegs;
+          E += dist * extPerMM;
+          if (si === 0) g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} F${fr}\n`;
+          else g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} E${E.toFixed(5)}\n`;
+        }
+      }
+    }
+    g += `M106 S${fanVal}\n`;
+    log('ok', `${baseLayers} base layers built`);
+  } else {
+    g += `M106 S${fanVal}\n`;
+  }
+
+  // GENERATIVE LAYERS
+  log('info', 'Building generative geometry...');
+  const baseLCount = withBase ? 5 : 0;
+
+  if (vaseMode) {
+    // VASE MODE: continuous spiral (Z increments per point)
+    g += `; Vase mode — continuous spiral\n`;
+    const zPerSeg = p.layerH / segs;
+    let prevX = null, prevY = null;
+    for (let li = 0; li < layers; li++) {
+      const t = li / Math.max(1, layers - 1);
+      const zBase = (baseLCount + li) * p.layerH;
+      for (let si = 0; si < segs; si++) {
+        const theta = (si / segs) * Math.PI * 2;
+        const r = Math.max(0.5, getRadius(t, theta, p));
+        const x = cx + r * Math.cos(theta);
+        const y = cy + r * Math.sin(theta);
+        const z = zBase + si * zPerSeg;
+        let dist;
+        if (prevX !== null) {
+          dist = Math.sqrt((x-prevX)**2 + (y-prevY)**2 + zPerSeg**2);
+        } else {
+          dist = 0;
+          g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} F${flSpeedMMM}\n`;
+        }
+        if (dist > 0) {
+          E += dist * extPerMM;
+          g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} E${E.toFixed(5)} F${fSpeedMMM}\n`;
+        }
+        prevX = x; prevY = y;
+      }
+    }
+  } else {
+    // LAYER-BY-LAYER
+    for (let li = 0; li < layers; li++) {
+      const t = li / Math.max(1, layers - 1);
+      const z = (baseLCount + li + 1) * p.layerH;
+      const fr = li === 0 ? flSpeedMMM : fSpeedMMM;
+      g += `; Layer ${li+1} Z${z.toFixed(3)}\n`;
+      let prevX = null, prevY = null;
+      for (let si = 0; si <= segs; si++) {
+        const theta = (si / segs) * Math.PI * 2;
+        const r = Math.max(0.5, getRadius(t, theta, p));
+        const x = cx + r * Math.cos(theta);
+        const y = cy + r * Math.sin(theta);
+        if (prevX === null) {
+          if (retract) g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} F5000\nG92 E0\n`;
+          else g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} F${fr}\n`;
+          prevX = x; prevY = y; continue;
+        }
+        const dist = Math.sqrt((x-prevX)**2 + (y-prevY)**2);
+        E += dist * extPerMM;
+        g += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} E${E.toFixed(5)} F${fr}\n`;
+        prevX = x; prevY = y;
+      }
+      if (retract && li < layers - 1) g += `G1 E-0.5 F3600 ; retract\n`;
+    }
+  }
+
+  // SHUTDOWN
+  g += `\n; --- SHUTDOWN ---\n`;
+  g += `M106 S0         ; Fan off\n`;
+  g += `M140 S0         ; Bed off\n`;
+  g += `M104 S0         ; Nozzle off\n`;
+  g += `G1 Z${(p.height + 10).toFixed(1)} F3000 ; Raise nozzle\n`;
+  g += `G1 X0 Y${256} F5000 ; Park\n`;
+  g += `M84             ; Motors off\n`;
+  g += `; === MESHMINDS GEN END ===\n`;
+
+  const lines = g.split('\n').length;
+  const bytes = new Blob([g]).size;
+  log('ok', `G-code built: ${lines.toLocaleString()} lines · ${(bytes/1024).toFixed(0)}KB`);
+  log('ok', `Estimated print: ~${document.getElementById('sFilament').textContent} filament`);
+  log('warn', 'Always test a small print first and monitor closely.');
+
+  const blob = new Blob([g], { type:'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const dl = document.getElementById('btnDl');
+  dl.href = url;
+  const fname = `meshminds_${currentPat}_${p.diam}x${p.height}mm.gcode`;
+  dl.download = fname;
+  dl.textContent = `⬇ Download ${fname}`;
+  dl.style.display = 'block';
+  log('ok', `Ready: ${fname}`);
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+renderPatParams();
+computeStats();
+render();
+window.addEventListener('resize', () => { resize(); });
+</script>
+</body>
+</html>

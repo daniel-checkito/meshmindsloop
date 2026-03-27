@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meshminds Character · Figurine Builder</title>
+<script src="/nav.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --orange: #FF6B00; --orange-d: #cc5500;
+  --orange-glow: rgba(255,107,0,0.14);
+  --orange-border: rgba(255,107,0,0.28);
+  --black: #0a0a0a; --panel: #111; --panel2: #181818;
+  --border: #1e1e1e; --border2: #2a2a2a;
+  --text: #f0f0f0; --muted: #666; --muted2: #444;
+  --ok: #22c55e; --warn: #f59e0b;
+  --display: 'Bebas Neue', sans-serif;
+  --mono: 'Space Mono', monospace;
+  --body: 'DM Sans', sans-serif;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { background:var(--black); color:var(--text); font-family:var(--body); }
+body { min-height:100vh; overflow-x:hidden; }
+
+/* HERO */
+.hero {
+  background:var(--black); text-align:center; padding:44px 20px 28px;
+  position:relative; overflow:hidden; border-bottom:1px solid var(--border);
+}
+.hero::before {
+  content:'CHARACTER'; position:absolute; font-family:var(--display);
+  font-size:min(22rem,55vw); color:rgba(255,255,255,0.022);
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  pointer-events:none; white-space:nowrap; line-height:1;
+}
+.hero h1 { font-family:var(--display); font-size:clamp(2.6rem,7vw,4.8rem); letter-spacing:0.03em; line-height:0.9; margin-bottom:10px; }
+.hero h1 em { color:var(--orange); font-style:normal; display:block; }
+.hero-sub { font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:14px; }
+.hero-pills { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+.pill { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); font-size:10px; font-family:var(--mono); padding:3px 10px; border-radius:100px; }
+
+/* APP LAYOUT */
+.app { display:grid; grid-template-columns:320px 1fr; min-height:calc(100vh - 52px - 140px); }
+@media(max-width:860px) { .app { grid-template-columns:1fr; } }
+
+/* SIDEBAR */
+.sidebar { background:var(--panel); border-right:1px solid var(--border); overflow-y:auto; }
+.sidebar::-webkit-scrollbar { width:3px; }
+.sidebar::-webkit-scrollbar-thumb { background:var(--border2); }
+
+/* SECTION */
+.sec { border-bottom:1px solid var(--border); }
+.sec-head { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; cursor:pointer; user-select:none; transition:background 0.15s; }
+.sec-head:hover { background:var(--panel2); }
+.sec-title { font-family:var(--mono); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; }
+.sec-arrow { font-size:9px; color:var(--muted); transition:transform 0.18s; }
+.sec-arrow.open { transform:rotate(90deg); }
+.sec-body { padding:14px 18px; display:none; }
+.sec-body.open { display:block; }
+
+/* OPTION GRID */
+.opt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.opt-grid.cols2 { grid-template-columns:repeat(2,1fr); }
+.opt-btn {
+  background:var(--panel2); border:1.5px solid var(--border); border-radius:6px;
+  padding:10px 6px 8px; cursor:pointer; text-align:center; transition:all 0.15s; touch-action:manipulation;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+.opt-btn:hover { border-color:var(--orange-border); }
+.opt-btn.active { border-color:var(--orange); background:var(--orange-glow); }
+.opt-icon { font-size:20px; line-height:1; display:block; }
+.opt-label { font-family:var(--mono); font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+.opt-btn.active .opt-label { color:var(--orange); }
+
+/* SLIDERS */
+.field { margin-bottom:13px; }
+.field:last-child { margin-bottom:0; }
+.lbl { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; display:block; margin-bottom:5px; }
+.lbl span { color:var(--orange); }
+.sl-row { display:flex; align-items:center; gap:10px; }
+.sl { flex:1; -webkit-appearance:none; height:4px; border-radius:2px; background:var(--border2); outline:none; cursor:pointer; }
+.sl::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--orange); cursor:pointer; border:2px solid var(--black); }
+.sl-val { font-family:var(--mono); font-size:10px; color:var(--orange); min-width:36px; text-align:right; font-weight:700; }
+
+/* COLOR PALETTE */
+.color-row { display:flex; gap:6px; flex-wrap:wrap; }
+.color-swatch { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.12s; flex-shrink:0; }
+.color-swatch.active { border-color:var(--text); transform:scale(1.15); }
+
+/* GENERATE */
+.gen-section { padding:16px 18px 20px; }
+.char-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:12px; }
+.cs { background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:8px; text-align:center; }
+.cs-v { font-family:var(--display); font-size:1.2rem; color:var(--orange); display:block; line-height:1; }
+.cs-l { font-family:var(--mono); font-size:8px; color:var(--muted); text-transform:uppercase; }
+.char-summary { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:10px 12px; margin-bottom:12px; font-family:var(--mono); font-size:10px; color:var(--muted); line-height:2; }
+.char-summary strong { color:var(--orange); }
+.btn-gen { width:100%; background:var(--orange); border:none; color:white; font-family:var(--display); font-size:1.3rem; letter-spacing:0.07em; padding:14px; border-radius:5px; cursor:pointer; transition:all 0.18s; }
+.btn-gen:hover { background:var(--orange-d); transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,107,0,0.3); }
+.btn-dl { display:none; width:100%; background:#111; border:1.5px solid var(--ok); color:var(--ok); font-family:var(--display); font-size:1.1rem; letter-spacing:0.06em; padding:12px; border-radius:5px; cursor:pointer; margin-top:8px; text-align:center; text-decoration:none; transition:all 0.18s; }
+.btn-dl:hover { background:#0d1f14; }
+.log-box { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:8px 10px; max-height:100px; overflow-y:auto; font-family:var(--mono); font-size:9px; display:none; margin-top:8px; }
+.log-box.vis { display:block; }
+.ll { line-height:1.9; }
+.ll.ok { color:var(--ok); }
+.ll.info { color:var(--orange); }
+.ll.warn { color:var(--warn); }
+
+/* PRINT TIPS */
+.tip-box { margin-top:10px; background:rgba(255,107,0,0.05); border:1px solid var(--orange-border); border-radius:5px; padding:10px 12px; font-family:var(--mono); font-size:9px; color:var(--muted); line-height:2; }
+.tip-box strong { color:var(--orange); }
+
+/* PREVIEW PANE */
+.preview-pane { display:flex; flex-direction:column; background:var(--black); }
+.canvas-wrap { flex:1; min-height:400px; position:relative; }
+canvas { display:block; width:100%; height:100%; cursor:grab; }
+canvas:active { cursor:grabbing; }
+
+.hud-tl { position:absolute; top:14px; left:14px; pointer-events:none; }
+.hud-name { font-family:var(--display); font-size:1.6rem; color:var(--orange); line-height:1; text-shadow:0 0 16px rgba(255,107,0,0.3); }
+.hud-class { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-top:2px; }
+
+.preview-bar { display:flex; align-items:center; gap:8px; padding:10px 16px; border-top:1px solid var(--border); background:var(--panel); flex-wrap:wrap; }
+.pbar-label { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+.pbar-btn { background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-family:var(--mono); font-size:9px; padding:4px 10px; border-radius:3px; cursor:pointer; transition:all 0.12s; }
+.pbar-btn:hover { border-color:var(--orange-border); color:var(--orange); }
+.pbar-btn.active { background:var(--orange-glow); border-color:var(--orange-border); color:var(--orange); }
+
+/* PRINT WARNINGS */
+.warn-panel { padding:14px 18px; border-top:1px solid var(--border); }
+.warn-title { font-family:var(--mono); font-size:9px; color:var(--warn); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:7px; }
+.warn-list { list-style:none; font-family:var(--mono); font-size:9px; color:var(--muted); display:flex; flex-direction:column; gap:4px; line-height:1.7; }
+.warn-list li::before { content:'! '; color:var(--warn); }
+
+footer { background:var(--panel); border-top:1px solid var(--border); text-align:center; padding:18px; font-family:var(--mono); font-size:9px; color:var(--muted2); }
+footer a { color:var(--orange); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Character<em>Builder</em></h1>
+  <p class="hero-sub">Design your figurine · Optimised for FDM · No supports · Bambu Lab A1</p>
+  <div class="hero-pills">
+    <span class="pill">No overhangs</span>
+    <span class="pill">FDM optimised</span>
+    <span class="pill">Single print</span>
+    <span class="pill">Direct G-code</span>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Body type -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">01 · Body type</span>
+        <span class="sec-arrow open">▶</span>
+      </div>
+      <div class="sec-body open">
+        <div class="opt-grid" id="bodyGrid">
+          <div class="opt-btn active" data-group="body" data-val="slim" onclick="pick(this)"><span class="opt-icon">🧍</span><span class="opt-label">Slim</span></div>
+          <div class="opt-btn" data-group="body" data-val="athletic" onclick="pick(this)"><span class="opt-icon">💪</span><span class="opt-label">Athletic</span></div>
+          <div class="opt-btn" data-group="body" data-val="stocky" onclick="pick(this)"><span class="opt-icon">🏋</span><span class="opt-label">Stocky</span></div>
+          <div class="opt-btn" data-group="body" data-val="tiny" onclick="pick(this)"><span class="opt-icon">🧒</span><span class="opt-label">Tiny</span></div>
+          <div class="opt-btn" data-group="body" data-val="tall" onclick="pick(this)"><span class="opt-icon">🦒</span><span class="opt-label">Tall</span></div>
+          <div class="opt-btn" data-group="body" data-val="chibi" onclick="pick(this)"><span class="opt-icon">🐣</span><span class="opt-label">Chibi</span></div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="field">
+            <label class="lbl">Total height <span id="heightVal">80mm</span></label>
+            <div class="sl-row">
+              <input type="range" class="sl" id="pHeight" min="40" max="140" step="5" value="80" oninput="slVal('heightVal',this.value,'mm');refresh()">
+              <span class="sl-val" id="heightValB">80mm</span>
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl">Base width <span id="baseVal">28mm</span></label>
+            <div class="sl-row">
+              <input type="range" class="sl" id="pBase" min="18" max="50" step="2" value="28" oninput="slVal('baseVal',this.value,'mm');refresh()">
+              <span class="sl-val" id="baseValB">28mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Head -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">02 · Head & face</span>
+        <span class="sec-arrow open">▶</span>
+      </div>
+      <div class="sec-body open">
+        <div class="opt-grid" id="headGrid">
+          <div class="opt-btn active" data-group="head" data-val="round" onclick="pick(this)"><span class="opt-icon">😶</span><span class="opt-label">Round</span></div>
+          <div class="opt-btn" data-group="head" data-val="angular" onclick="pick(this)"><span class="opt-icon">🗿</span><span class="opt-label">Angular</span></div>
+          <div class="opt-btn" data-group="head" data-val="helmet" onclick="pick(this)"><span class="opt-icon">⛑</span><span class="opt-label">Helmet</span></div>
+          <div class="opt-btn" data-group="head" data-val="hood" onclick="pick(this)"><span class="opt-icon">🧙</span><span class="opt-label">Hood</span></div>
+          <div class="opt-btn" data-group="head" data-val="skull" onclick="pick(this)"><span class="opt-icon">💀</span><span class="opt-label">Skull</span></div>
+          <div class="opt-btn" data-group="head" data-val="robot" onclick="pick(this)"><span class="opt-icon">🤖</span><span class="opt-label">Robot</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class / style -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">03 · Class & armour</span>
+        <span class="sec-arrow open">▶</span>
+      </div>
+      <div class="sec-body open">
+        <div class="opt-grid" id="classGrid">
+          <div class="opt-btn active" data-group="class" data-val="warrior" onclick="pick(this)"><span class="opt-icon">⚔</span><span class="opt-label">Warrior</span></div>
+          <div class="opt-btn" data-group="class" data-val="mage" onclick="pick(this)"><span class="opt-icon">🔮</span><span class="opt-label">Mage</span></div>
+          <div class="opt-btn" data-group="class" data-val="rogue" onclick="pick(this)"><span class="opt-icon">🗡</span><span class="opt-label">Rogue</span></div>
+          <div class="opt-btn" data-group="class" data-val="archer" onclick="pick(this)"><span class="opt-icon">🏹</span><span class="opt-label">Archer</span></div>
+          <div class="opt-btn" data-group="class" data-val="monk" onclick="pick(this)"><span class="opt-icon">🥋</span><span class="opt-label">Monk</span></div>
+          <div class="opt-btn" data-group="class" data-val="sci-fi" onclick="pick(this)"><span class="opt-icon">🚀</span><span class="opt-label">Sci-Fi</span></div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="field">
+            <label class="lbl">Armour detail <span id="armourVal">Medium</span></label>
+            <div class="sl-row">
+              <input type="range" class="sl" id="pArmour" min="1" max="3" step="1" value="2" oninput="armourLabel(this.value);refresh()">
+              <span class="sl-val" id="armourValB">2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pose -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">04 · Pose</span>
+        <span class="sec-arrow">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="opt-grid cols2" id="poseGrid">
+          <div class="opt-btn active" data-group="pose" data-val="stand" onclick="pick(this)"><span class="opt-icon">🧍</span><span class="opt-label">Standing</span></div>
+          <div class="opt-btn" data-group="pose" data-val="action" onclick="pick(this)"><span class="opt-icon">🏃</span><span class="opt-label">Action</span></div>
+          <div class="opt-btn" data-group="pose" data-val="battle" onclick="pick(this)"><span class="opt-icon">⚡</span><span class="opt-label">Battle</span></div>
+          <div class="opt-btn" data-group="pose" data-val="sit" onclick="pick(this)"><span class="opt-icon">🪑</span><span class="opt-label">Seated</span></div>
+        </div>
+        <p style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:10px;line-height:1.8;">All poses are constrained to ≤45° overhang — no support needed.</p>
+      </div>
+    </div>
+
+    <!-- Weapon / accessory -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">05 · Weapon</span>
+        <span class="sec-arrow">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="opt-grid" id="weaponGrid">
+          <div class="opt-btn active" data-group="weapon" data-val="sword" onclick="pick(this)"><span class="opt-icon">⚔</span><span class="opt-label">Sword</span></div>
+          <div class="opt-btn" data-group="weapon" data-val="staff" onclick="pick(this)"><span class="opt-icon">🪄</span><span class="opt-label">Staff</span></div>
+          <div class="opt-btn" data-group="weapon" data-val="bow" onclick="pick(this)"><span class="opt-icon">🏹</span><span class="opt-label">Bow</span></div>
+          <div class="opt-btn" data-group="weapon" data-val="axe" onclick="pick(this)"><span class="opt-icon">🪓</span><span class="opt-label">Axe</span></div>
+          <div class="opt-btn" data-group="weapon" data-val="shield" onclick="pick(this)"><span class="opt-icon">🛡</span><span class="opt-label">Shield</span></div>
+          <div class="opt-btn" data-group="weapon" data-val="none" onclick="pick(this)"><span class="opt-icon">✋</span><span class="opt-label">None</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Base -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">06 · Base</span>
+        <span class="sec-arrow">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="opt-grid" id="baseGrid">
+          <div class="opt-btn active" data-group="base" data-val="round" onclick="pick(this)"><span class="opt-icon">⬤</span><span class="opt-label">Round</span></div>
+          <div class="opt-btn" data-group="base" data-val="hex" onclick="pick(this)"><span class="opt-icon">⬡</span><span class="opt-label">Hex</span></div>
+          <div class="opt-btn" data-group="base" data-val="square" onclick="pick(this)"><span class="opt-icon">⬛</span><span class="opt-label">Square</span></div>
+          <div class="opt-btn" data-group="base" data-val="terrain" onclick="pick(this)"><span class="opt-icon">⛰</span><span class="opt-label">Terrain</span></div>
+          <div class="opt-btn" data-group="base" data-val="minimal" onclick="pick(this)"><span class="opt-icon">▬</span><span class="opt-label">Minimal</span></div>
+          <div class="opt-btn" data-group="base" data-val="none" onclick="pick(this)"><span class="opt-icon">✕</span><span class="opt-label">None</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colour -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">07 · Colour</span>
+        <span class="sec-arrow">▶</span>
+      </div>
+      <div class="sec-body">
+        <label class="lbl" style="margin-bottom:8px;">Filament colour</label>
+        <div class="color-row" id="colorRow">
+          <div class="color-swatch active" data-color="#e0e0e0" style="background:#e0e0e0" onclick="pickColor(this)" title="White"></div>
+          <div class="color-swatch" data-color="#FF6B00" style="background:#FF6B00" onclick="pickColor(this)" title="Orange"></div>
+          <div class="color-swatch" data-color="#1e88e5" style="background:#1e88e5" onclick="pickColor(this)" title="Blue"></div>
+          <div class="color-swatch" data-color="#e53935" style="background:#e53935" onclick="pickColor(this)" title="Red"></div>
+          <div class="color-swatch" data-color="#43a047" style="background:#43a047" onclick="pickColor(this)" title="Green"></div>
+          <div class="color-swatch" data-color="#8e24aa" style="background:#8e24aa" onclick="pickColor(this)" title="Purple"></div>
+          <div class="color-swatch" data-color="#111111" style="background:#333;border:1px solid #555" onclick="pickColor(this)" title="Black"></div>
+          <div class="color-swatch" data-color="#ffd600" style="background:#ffd600" onclick="pickColor(this)" title="Yellow"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print settings -->
+    <div class="sec">
+      <div class="sec-head" onclick="toggleSec(this)">
+        <span class="sec-title">08 · Print settings</span>
+        <span class="sec-arrow">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="field">
+          <label class="lbl">Layer height</label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pLayerH" min="0.1" max="0.3" step="0.05" value="0.15" oninput="slVal('layerHVal',this.value,'mm');refresh()">
+            <span class="sl-val" id="layerHVal">0.15mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Print speed</label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pSpeed" min="20" max="80" step="5" value="35" oninput="slVal('speedVal',this.value,'mm/s');refresh()">
+            <span class="sl-val" id="speedVal">35mm/s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Detail speed (overhangs)</label>
+          <div class="sl-row">
+            <input type="range" class="sl" id="pDetailSpeed" min="10" max="40" step="5" value="20" oninput="slVal('detailVal',this.value,'mm/s')">
+            <span class="sl-val" id="detailVal">20mm/s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate -->
+    <div class="gen-section">
+      <div class="char-stats">
+        <div class="cs"><span class="cs-v" id="sHeight">80mm</span><span class="cs-l">Height</span></div>
+        <div class="cs"><span class="cs-v" id="sTime">~45m</span><span class="cs-l">Est. time</span></div>
+        <div class="cs"><span class="cs-v" id="sFilament">~4g</span><span class="cs-l">Filament</span></div>
+      </div>
+      <div class="char-summary" id="charSummary">
+        <strong>Slim warrior</strong> with round head, sword, round base<br>
+        80mm tall · Optimised for FDM · No supports
+      </div>
+      <button class="btn-gen" onclick="generateCharacter()">Generate G-Code →</button>
+      <a class="btn-dl" id="btnDl" href="#" download="">⬇ Download .gcode</a>
+      <div class="log-box" id="logBox"></div>
+      <div class="tip-box" id="tipBox">
+        <strong>Print tips for this character:</strong><br>
+        Fan 100% from layer 1 · PLA 215°C · Bed 60°C<br>
+        Layer height 0.15mm for face detail · Speed 35mm/s
+      </div>
+    </div>
+
+    <div class="warn-panel">
+      <div class="warn-title">! Print constraints applied</div>
+      <ul class="warn-list">
+        <li>All limbs angled ≤45° from vertical — no supports needed</li>
+        <li>Weapon integrated into hand — prints as one piece</li>
+        <li>Base provides flat adhesion surface</li>
+        <li>Hollow interior above 40mm height to save filament</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- PREVIEW PANE -->
+  <div class="preview-pane">
+    <div class="canvas-wrap">
+      <canvas id="c3d"></canvas>
+      <div class="hud-tl">
+        <div class="hud-name" id="hudName">SLIM WARRIOR</div>
+        <div class="hud-class" id="hudClass">Round head · Sword · Round base</div>
+      </div>
+    </div>
+    <div class="preview-bar">
+      <span class="pbar-label">View</span>
+      <button class="pbar-btn active" id="btnSolid" onclick="setView('solid',this)">Solid</button>
+      <button class="pbar-btn" id="btnWire" onclick="setView('wire',this)">Wireframe</button>
+      <button class="pbar-btn" id="btnX-ray" onclick="setView('xray',this)">X-ray</button>
+      <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted);">Drag · Scroll zoom</span>
+      <button class="pbar-btn" onclick="resetCam()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Meshminds Character Builder · <a href="https://instagram.com/meshminds3d" target="_blank">@meshminds3d</a> · Bambu Lab A1 · PLA · No support needed</p>
+</footer>
+
+<script>
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+const S = {
+  body:'slim', head:'round', class:'warrior', pose:'stand',
+  weapon:'sword', base:'round', color:'#e0e0e0',
+  height:80, baseW:28, armour:2, layerH:0.15, speed:35, detailSpeed:20
+};
+
+let rotX=-0.3, rotY=0.4, zoom=1, isDragging=false, lastX=0, lastY=0, autoRotate=true, animId=null;
+let viewMode='solid';
+
+// ═══════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════
+function toggleSec(head) {
+  const body=head.nextElementSibling, arrow=head.querySelector('.sec-arrow');
+  const open=body.classList.toggle('open');
+  arrow.classList.toggle('open',open);
+}
+
+function pick(btn) {
+  const group=btn.dataset.group;
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  S[group]=btn.dataset.val;
+  refresh();
+}
+
+function pickColor(sw) {
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
+  sw.classList.add('active');
+  S.color=sw.dataset.color;
+  refresh();
+}
+
+function slVal(id,val,suffix) {
+  const v=parseFloat(val);
+  const fv=v<1?v.toFixed(2):(Number.isInteger(v)?v:v.toFixed(1));
+  document.getElementById(id).textContent=fv+suffix;
+  const bId=id+'B'; if(document.getElementById(bId)) document.getElementById(bId).textContent=fv+suffix;
+}
+
+function armourLabel(v) {
+  const labels=['','Low','Medium','High'];
+  document.getElementById('armourVal').textContent=labels[parseInt(v)]||v;
+  document.getElementById('armourValB').textContent=v;
+  S.armour=parseInt(v);
+}
+
+function refresh() {
+  S.height=parseInt(document.getElementById('pHeight').value);
+  S.baseW=parseInt(document.getElementById('pBase').value);
+  S.layerH=parseFloat(document.getElementById('pLayerH').value);
+  S.speed=parseInt(document.getElementById('pSpeed').value);
+  S.detailSpeed=parseInt(document.getElementById('pDetailSpeed').value);
+  updateStats();
+  updateSummary();
+  updateHUD();
+}
+
+function updateStats() {
+  const layers=Math.floor(S.height/S.layerH);
+  const perim=2*Math.PI*(S.baseW/2);
+  const totalDist=layers*perim*0.8;
+  const mins=Math.round(totalDist/S.speed/60);
+  const filmG=(totalDist*0.0024).toFixed(1);
+  document.getElementById('sHeight').textContent=S.height+'mm';
+  document.getElementById('sTime').textContent=mins+'m';
+  document.getElementById('sFilament').textContent=filmG+'g';
+}
+
+const classNames={warrior:'Warrior',mage:'Mage',rogue:'Rogue',archer:'Archer',monk:'Monk','sci-fi':'Sci-Fi'};
+const bodyNames={slim:'Slim',athletic:'Athletic',stocky:'Stocky',tiny:'Tiny',tall:'Tall',chibi:'Chibi'};
+const headNames={round:'Round head',angular:'Angular',helmet:'Helmet',hood:'Hooded',skull:'Skull',robot:'Robot'};
+const weaponNames={sword:'Sword',staff:'Staff',bow:'Bow',axe:'Axe',shield:'Shield',none:'Unarmed'};
+const baseNames={round:'Round base',hex:'Hex base',square:'Square base',terrain:'Terrain base',minimal:'Minimal base',none:'No base'};
+
+function updateSummary() {
+  document.getElementById('charSummary').innerHTML=
+    `<strong>${bodyNames[S.body]} ${classNames[S.class]}</strong> with ${headNames[S.head]}, ${weaponNames[S.weapon]}, ${baseNames[S.base]}<br>
+    ${S.height}mm tall · Optimised for FDM · No supports`;
+}
+
+function updateHUD() {
+  document.getElementById('hudName').textContent=`${(bodyNames[S.body]+' '+classNames[S.class]).toUpperCase()}`;
+  document.getElementById('hudClass').textContent=`${headNames[S.head]} · ${weaponNames[S.weapon]} · ${baseNames[S.base]}`;
+}
+
+// ═══════════════════════════════════
+// 3D RENDERER
+// ═══════════════════════════════════
+const canvas=document.getElementById('c3d');
+const ctx=canvas.getContext('2d');
+
+function proj(px,py,pz) {
+  const lx=px, ly=py, lz=pz-S.height/2;
+  const cY=Math.cos(rotY),sY=Math.sin(rotY);
+  const rx=lx*cY-lz*sY, rz=lx*sY+lz*cY;
+  const cX=Math.cos(rotX),sX=Math.sin(rotX);
+  const ry2=ly*cX-rz*sX, rz2=ly*sX+rz*cX;
+  const fov=280*zoom,dist=500,sc=fov/(dist+rz2);
+  return {sx:canvas.width/2+rx*sc, sy:canvas.height/2-ry2*sc, depth:rz2};
+}
+
+function drawCylinder(cx,cy,z0,z1,r,faces,color,lit) {
+  const segs=faces||20;
+  const facesArr=[];
+  for(let i=0;i<segs;i++) {
+    const a0=(i/segs)*Math.PI*2, a1=((i+1)/segs)*Math.PI*2;
+    const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0);
+    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    const p0=proj(x0,y0,z0),p1=proj(x1,y1,z0),p2=proj(x1,y1,z1),p3=proj(x0,y0,z1);
+    const avgD=(p0.depth+p1.depth+p2.depth+p3.depth)/4;
+    const nx=Math.cos((a0+a1)/2),ny=Math.sin((a0+a1)/2);
+    const lightAmt=(nx*0.3+ny*0.2+0.5)*0.7+0.3;
+    facesArr.push({p0,p1,p2,p3,avgD,lightAmt});
+  }
+  facesArr.sort((a,b)=>b.avgD-a.avgD);
+  for(const f of facesArr) {
+    const {p0,p1,p2,p3,lightAmt}=f;
+    ctx.beginPath();
+    ctx.moveTo(p0.sx,p0.sy); ctx.lineTo(p1.sx,p1.sy);
+    ctx.lineTo(p2.sx,p2.sy); ctx.lineTo(p3.sx,p3.sy);
+    ctx.closePath();
+    if(viewMode==='solid') {
+      const c=hexToRgb(color||S.color);
+      const l=Math.round((lightAmt||0.7)*255);
+      const r2=Math.min(255,Math.round(c.r*lightAmt));
+      const g2=Math.min(255,Math.round(c.g*lightAmt));
+      const b2=Math.min(255,Math.round(c.b*lightAmt));
+      ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
+      ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=0.3;ctx.stroke();
+    } else if(viewMode==='wire') {
+      ctx.strokeStyle='rgba(255,107,0,0.4)';ctx.lineWidth=0.5;ctx.stroke();
+    } else {
+      ctx.strokeStyle='rgba(255,107,0,0.15)';ctx.lineWidth=0.4;ctx.stroke();
+      ctx.fillStyle='rgba(255,107,0,0.03)';ctx.fill();
+    }
+  }
+}
+
+function drawBox(cx,cy,z0,z1,w,d,color) {
+  const hw=w/2,hd=d/2;
+  const corners=[[cx-hw,cy-hd],[cx+hw,cy-hd],[cx+hw,cy+hd],[cx-hw,cy+hd]];
+  const faces=[
+    [0,1,z0,z1],[1,2,z0,z1],[2,3,z0,z1],[3,0,z0,z1]
+  ];
+  const rendFaces=[];
+  for(let i=0;i<4;i++) {
+    const c0=corners[i],c1=corners[(i+1)%4];
+    const p0=proj(c0[0],c0[1],z0),p1=proj(c1[0],c1[1],z0),p2=proj(c1[0],c1[1],z1),p3=proj(c0[0],c0[1],z1);
+    const avgD=(p0.depth+p1.depth+p2.depth+p3.depth)/4;
+    const nx=(c0[0]+c1[0])/2, ny=(c0[1]+c1[1])/2;
+    const len=Math.sqrt(nx*nx+ny*ny)||1;
+    rendFaces.push({p0,p1,p2,p3,avgD,light:(nx/len)*0.3+(ny/len)*0.2+0.7});
+  }
+  rendFaces.sort((a,b)=>b.avgD-a.avgD);
+  for(const f of rendFaces) {
+    ctx.beginPath();
+    ctx.moveTo(f.p0.sx,f.p0.sy);ctx.lineTo(f.p1.sx,f.p1.sy);
+    ctx.lineTo(f.p2.sx,f.p2.sy);ctx.lineTo(f.p3.sx,f.p3.sy);
+    ctx.closePath();
+    if(viewMode==='solid') {
+      const c=hexToRgb(color||S.color);
+      ctx.fillStyle=`rgb(${Math.round(c.r*f.light)},${Math.round(c.g*f.light)},${Math.round(c.b*f.light)})`;
+      ctx.fill(); ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=0.3;ctx.stroke();
+    } else { ctx.strokeStyle='rgba(255,107,0,0.35)';ctx.lineWidth=0.5;ctx.stroke(); }
+  }
+}
+
+function drawDisk(cx,cy,z,r,color) {
+  const segs=24;
+  const pts=[];
+  for(let i=0;i<segs;i++) {
+    const a=(i/segs)*Math.PI*2;
+    pts.push(proj(cx+r*Math.cos(a),cy+r*Math.sin(a),z));
+  }
+  ctx.beginPath();
+  ctx.moveTo(pts[0].sx,pts[0].sy);
+  for(let i=1;i<segs;i++) ctx.lineTo(pts[i].sx,pts[i].sy);
+  ctx.closePath();
+  if(viewMode==='solid') {
+    const c=hexToRgb(color||S.color);
+    ctx.fillStyle=`rgb(${Math.round(c.r*0.6)},${Math.round(c.g*0.6)},${Math.round(c.b*0.6)})`;
+    ctx.fill();
+  } else { ctx.strokeStyle='rgba(255,107,0,0.3)';ctx.lineWidth=0.5;ctx.stroke(); }
+}
+
+function hexToRgb(hex) {
+  const r=parseInt(hex.slice(1,3),16)||200;
+  const g=parseInt(hex.slice(3,5),16)||200;
+  const b=parseInt(hex.slice(5,7),16)||200;
+  return {r,g,b};
+}
+
+function drawCharacter() {
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Grid floor
+  ctx.strokeStyle='rgba(255,107,0,0.04)';ctx.lineWidth=0.5;
+  for(let i=-3;i<=3;i++) {
+    const a=proj(i*20,-60,0),b=proj(i*20,60,0);
+    ctx.beginPath();ctx.moveTo(a.sx,a.sy);ctx.lineTo(b.sx,b.sy);ctx.stroke();
+    const c=proj(-60,i*20,0),d=proj(60,i*20,0);
+    ctx.beginPath();ctx.moveTo(c.sx,c.sy);ctx.lineTo(d.sx,d.sy);ctx.stroke();
+  }
+
+  const h=S.height, bw=S.baseW/2;
+  const bodyW=S.body==='chibi'?bw*0.9:S.body==='stocky'?bw*0.85:S.body==='athletic'?bw*0.7:S.body==='slim'?bw*0.55:S.body==='tall'?bw*0.5:bw*0.6;
+  const bodyH=S.body==='chibi'?h*0.45:S.body==='tall'?h*0.55:h*0.5;
+  const legH=h-bodyH-(S.base==='none'?0:4);
+  const headR=S.body==='chibi'?bodyW*1.2:bodyW*0.85;
+  const headH=S.body==='chibi'?headR*2:headR*1.8;
+
+  // BASE
+  if(S.base!=='none') {
+    const baseColor='#555';
+    if(S.base==='round'||S.base==='minimal') drawCylinder(0,0,0,4,bw,24,baseColor);
+    else if(S.base==='hex') drawCylinder(0,0,0,4,bw,6,baseColor);
+    else if(S.base==='square') drawBox(0,0,0,4,bw*2,bw*2,baseColor);
+    else if(S.base==='terrain') {
+      drawCylinder(0,0,0,4,bw,24,'#4a3728');
+      drawCylinder(0,0,4,7,bw*0.7,8,'#5a4535');
+    }
+    drawDisk(0,0,4,bw,baseColor);
+  }
+
+  const baseZ=S.base==='none'?0:4;
+
+  // LEGS
+  const poseAngle=S.pose==='action'?0.25:S.pose==='battle'?0.3:0;
+  const legR=bodyW*0.38;
+  // left leg
+  drawCylinder(-bodyW*0.3+Math.sin(poseAngle)*legH*0.5, 0, baseZ, baseZ+legH, legR, 12);
+  // right leg
+  drawCylinder(bodyW*0.3-Math.sin(poseAngle)*legH*0.3, 0, baseZ, baseZ+legH, legR, 12);
+
+  // BODY / TORSO
+  const torsoZ=baseZ+legH;
+  drawCylinder(0,0,torsoZ,torsoZ+bodyH,bodyW,20);
+
+  // Armour detail lines (just visual bands)
+  if(S.armour>=2) {
+    drawCylinder(0,0,torsoZ+bodyH*0.25,torsoZ+bodyH*0.3,bodyW*1.02,20,'#999');
+    drawCylinder(0,0,torsoZ+bodyH*0.6,torsoZ+bodyH*0.65,bodyW*1.02,20,'#999');
+  }
+  if(S.armour>=3) {
+    drawCylinder(0,0,torsoZ+bodyH*0.1,torsoZ+bodyH*0.15,bodyW*1.03,20,'#aaa');
+  }
+
+  // ARMS
+  const armZ=torsoZ+bodyH*0.7;
+  const armR=bodyW*0.28, armLen=bodyH*0.75;
+  const armAngle=S.pose==='battle'?-0.5:S.pose==='action'?-0.3:-0.15;
+  // Left arm
+  const lax=-bodyW-armR;
+  drawCylinder(lax, 0, armZ+Math.sin(armAngle)*armLen, armZ, armR, 10);
+  drawCylinder(lax, 0, armZ, armZ+armLen, armR, 10);
+  // Right arm + weapon
+  const rax=bodyW+armR;
+  drawCylinder(rax, 0, armZ, armZ+armLen, armR, 10);
+  // WEAPON
+  if(S.weapon!=='none') {
+    const wz=armZ+armLen;
+    if(S.weapon==='sword') {
+      drawCylinder(rax,0,wz,wz+bodyH*0.9,armR*0.25,8,'#aaa');
+      drawBox(rax,0,wz+bodyH*0.05,wz+bodyH*0.12,armR*2.5,armR*0.4,'#888');
+    } else if(S.weapon==='staff') {
+      drawCylinder(rax,0,wz,wz+bodyH*1.0,armR*0.2,8,'#8B5E3C');
+      drawCylinder(rax,0,wz+bodyH*0.92,wz+bodyH*1.05,armR*0.5,12,'#9b59b6');
+    } else if(S.weapon==='axe') {
+      drawCylinder(rax,0,wz,wz+bodyH*0.5,armR*0.25,8,'#8B5E3C');
+      drawBox(rax+armR*1.2,0,wz+bodyH*0.3,wz+bodyH*0.55,armR*2,armR*0.5,'#aaa');
+    } else if(S.weapon==='bow') {
+      drawCylinder(rax+armR*0.5,0,wz,wz+bodyH*0.9,armR*0.15,6,'#8B5E3C');
+    } else if(S.weapon==='shield') {
+      drawCylinder(lax,0,armZ+armLen*0.3,armZ+armLen*0.85,armR*1.8,8,'#3d85c8');
+    }
+  }
+
+  // HEAD
+  const headZ=torsoZ+bodyH;
+  const neckR=bodyW*0.28;
+  drawCylinder(0,0,headZ,headZ+headR*0.4,neckR,12); // neck
+  if(S.head==='round'||S.head==='skull') drawCylinder(0,0,headZ+headR*0.4,headZ+headR*0.4+headH,headR,20);
+  else if(S.head==='angular') drawBox(0,0,headZ+headR*0.4,headZ+headR*0.4+headH,headR*1.6,headR*1.6);
+  else if(S.head==='helmet') {
+    drawCylinder(0,0,headZ+headR*0.4,headZ+headR*0.4+headH*0.6,headR,20);
+    drawCylinder(0,0,headZ+headR*0.4+headH*0.6,headZ+headR*0.4+headH,headR*1.15,16,'#777');
+  } else if(S.head==='hood') {
+    drawCylinder(0,0,headZ+headR*0.4,headZ+headR*0.4+headH,headR,20);
+    drawCylinder(0,0,headZ+headR*0.4+headH*0.5,headZ+headR*0.4+headH*1.2,headR*1.1,20,'#555');
+  } else if(S.head==='robot') {
+    drawBox(0,0,headZ+headR*0.4,headZ+headR*0.4+headH,headR*1.4,headR*1.4);
+    drawBox(0,-headR*1.5,headZ+headR*0.4+headH*0.2,headZ+headR*0.4+headH*0.5,headR*0.4,headR*0.15,'#555');
+  }
+}
+
+function renderLoop() {
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.clientWidth; canvas.height=wrap.clientHeight;
+  if(autoRotate) rotY+=0.005;
+  drawCharacter();
+  animId=requestAnimationFrame(renderLoop);
+}
+
+canvas.addEventListener('mousedown',e=>{isDragging=true;lastX=e.clientX;lastY=e.clientY;autoRotate=false;});
+window.addEventListener('mouseup',()=>isDragging=false);
+window.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  rotY+=(e.clientX-lastX)*0.007; rotX+=(e.clientY-lastY)*0.007;
+  rotX=Math.max(-Math.PI/2,Math.min(Math.PI/2,rotX));
+  lastX=e.clientX;lastY=e.clientY;
+});
+canvas.addEventListener('wheel',e=>{zoom*=e.deltaY>0?0.92:1.08;zoom=Math.max(0.3,Math.min(3,zoom));autoRotate=false;e.preventDefault();},{passive:false});
+
+// Touch
+let tlX=0,tlY=0,tPinch=0;
+canvas.addEventListener('touchstart',e=>{autoRotate=false;if(e.touches.length===1){tlX=e.touches[0].clientX;tlY=e.touches[0].clientY;}if(e.touches.length===2){tPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===1){rotY+=(e.touches[0].clientX-tlX)*0.009;rotX+=(e.touches[0].clientY-tlY)*0.009;rotX=Math.max(-Math.PI/2,Math.min(Math.PI/2,rotX));tlX=e.touches[0].clientX;tlY=e.touches[0].clientY;}
+  if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);zoom*=d/tPinch;zoom=Math.max(0.3,Math.min(3,zoom));tPinch=d;}
+  e.preventDefault();
+},{passive:false});
+
+function setView(mode,btn) {
+  viewMode=mode;
+  document.querySelectorAll('.pbar-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function resetCam(){rotX=-0.3;rotY=0.4;zoom=1;autoRotate=true;}
+
+// ═══════════════════════════════════
+// G-CODE GENERATOR
+// ═══════════════════════════════════
+function log(type,msg) {
+  const box=document.getElementById('logBox');
+  box.classList.add('vis');
+  const d=document.createElement('div');
+  d.className='ll '+type;
+  d.textContent=({ok:'✓',info:'→',warn:'⚠'}[type]||'·')+' '+msg;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+
+function generateCharacter() {
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('logBox').classList.remove('vis');
+  document.getElementById('btnDl').style.display='none';
+
+  const h=S.height, bw=S.baseW/2;
+  const layerH=S.layerH, speed=S.speed, dSpeed=S.detailSpeed;
+  const speedMMM=speed*60, dSpeedMMM=dSpeed*60;
+  const EXT=0.0138;
+  const CX=128, CY=128;
+  let E=0;
+
+  const STARTUP=`; Meshminds Character Builder
+; Body: ${S.body} | Class: ${S.class} | Head: ${S.head}
+; Weapon: ${S.weapon} | Pose: ${S.pose} | Base: ${S.base}
+; Height: ${h}mm | Layer: ${layerH}mm | Speed: ${speed}mm/s
+; Printer: Bambu Lab A1 | PLA | No support needed
+; @meshminds3d
+;
+G28
+M140 S60
+M104 S215
+M190 S60
+M109 S215
+G92 E0
+M83
+G90
+M106 S255
+; Purge line
+G1 X5 Y5 Z0.3 F5000
+G1 X60 E4 F1200
+G1 Z5 F3000
+G92 E0
+`;
+
+  log('info',`Building ${S.body} ${S.class} — ${h}mm tall`);
+
+  let g=STARTUP;
+
+  // Helper: extrude a cylinder ring at z
+  function ring(cx,cy,z,r,segs,spd) {
+    let prev=null;
+    for(let i=0;i<=segs;i++) {
+      const theta=(i/segs)*Math.PI*2;
+      const x=CX+cx+r*Math.cos(theta);
+      const y=CY+cy+r*Math.sin(theta);
+      if(!prev) { g+=`G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} F${spd||speedMMM}\n`; }
+      else { const dist=2*Math.PI*r/segs; E+=dist*EXT; g+=`G1 X${x.toFixed(3)} Y${y.toFixed(3)} E${E.toFixed(4)}\n`; }
+      prev={x,y};
+    }
+    g+=`G1 E${(E-0.3).toFixed(4)} F3600\n`;
+  }
+
+  // Helper: cylinder from z0 to z1
+  function cylinder(cx,cy,z0,z1,r,segs) {
+    const layers=Math.round((z1-z0)/layerH);
+    const useSegs=segs||Math.max(12,Math.round(2*Math.PI*r/0.4));
+    for(let li=0;li<layers;li++) {
+      const z=z0+(li+1)*layerH;
+      ring(cx,cy,z,r,useSegs);
+    }
+    log('ok',`Cylinder @(${cx},${cy}) R${r.toFixed(1)}mm Z${z0}→${z1}mm`);
+  }
+
+  const bodyW=S.body==='chibi'?bw*0.9:S.body==='stocky'?bw*0.85:S.body==='athletic'?bw*0.7:S.body==='slim'?bw*0.55:S.body==='tall'?bw*0.5:bw*0.6;
+  const bodyH=S.body==='chibi'?h*0.45:S.body==='tall'?h*0.55:h*0.5;
+  const legH=h-bodyH-(S.base==='none'?0:4);
+  const headR=S.body==='chibi'?bodyW*1.2:bodyW*0.85;
+  const headH=S.body==='chibi'?headR*2:headR*1.8;
+  const baseZ=S.base==='none'?0:4;
+  const legR=bodyW*0.38, armR=bodyW*0.28;
+
+  // BASE
+  if(S.base!=='none') {
+    g+=`; === BASE ===\n`; cylinder(0,0,0,4,bw,S.base==='hex'?6:24);
+  }
+
+  // LEGS
+  g+=`; === LEGS ===\n`;
+  const poseOffset=S.pose==='action'?legH*0.3:S.pose==='battle'?legH*0.35:0;
+  cylinder(-bodyW*0.3,0,baseZ,baseZ+legH,legR,12);
+  cylinder(bodyW*0.3,0,baseZ,baseZ+legH,legR,12);
+
+  // TORSO
+  g+=`; === TORSO ===\n`;
+  cylinder(0,0,baseZ+legH,baseZ+legH+bodyH,bodyW,20);
+
+  // ARMS
+  g+=`; === ARMS ===\n`;
+  const armZ=baseZ+legH+bodyH*0.7;
+  const armLen=bodyH*0.75;
+  cylinder(-bodyW-armR,0,armZ,armZ+armLen,armR,10);
+  cylinder(bodyW+armR,0,armZ,armZ+armLen,armR,10);
+
+  // WEAPON (right hand)
+  const wz=armZ+armLen;
+  if(S.weapon!=='none') {
+    g+=`; === WEAPON: ${S.weapon.toUpperCase()} ===\n`;
+    if(S.weapon==='sword') {
+      cylinder(bodyW+armR,0,wz,wz+bodyH*0.9,armR*0.25,8);
+      cylinder(bodyW+armR,0,wz+bodyH*0.05,wz+bodyH*0.12,armR*1.5,6);
+    } else if(S.weapon==='staff') {
+      cylinder(bodyW+armR,0,wz,wz+bodyH*1.1,armR*0.2,8);
+      cylinder(bodyW+armR,0,wz+bodyH*0.9,wz+bodyH*1.1,armR*0.55,12);
+    } else if(S.weapon==='axe') {
+      cylinder(bodyW+armR,0,wz,wz+bodyH*0.5,armR*0.25,8);
+      cylinder(bodyW+armR*2.5,0,wz+bodyH*0.28,wz+bodyH*0.55,armR*1.2,8);
+    } else if(S.weapon==='bow') {
+      cylinder(bodyW+armR*1.5,0,wz,wz+bodyH*0.9,armR*0.15,6);
+      cylinder(bodyW+armR*1.5,0,wz+bodyH*0.1,wz+bodyH*0.9,armR*0.08,6);
+    } else if(S.weapon==='shield') {
+      cylinder(-bodyW-armR,0,armZ+armLen*0.3,armZ+armLen*0.85,armR*1.8,8);
+    }
+  }
+
+  // NECK
+  g+=`; === NECK ===\n`;
+  const headZ=baseZ+legH+bodyH;
+  cylinder(0,0,headZ,headZ+headR*0.4,bodyW*0.28,12);
+
+  // HEAD
+  g+=`; === HEAD: ${S.head.toUpperCase()} ===\n`;
+  const headBaseZ=headZ+headR*0.4;
+  if(S.head==='round'||S.head==='skull'||S.head==='hood') {
+    cylinder(0,0,headBaseZ,headBaseZ+headH,headR,20);
+    if(S.head==='hood') cylinder(0,0,headBaseZ+headH*0.5,headBaseZ+headH*1.1,headR*1.1,20);
+  } else if(S.head==='angular') {
+    cylinder(0,0,headBaseZ,headBaseZ+headH,headR*1.1,4); // square approximation
+  } else if(S.head==='helmet') {
+    cylinder(0,0,headBaseZ,headBaseZ+headH*0.6,headR,20);
+    cylinder(0,0,headBaseZ+headH*0.6,headBaseZ+headH,headR*1.15,16);
+  } else if(S.head==='robot') {
+    cylinder(0,0,headBaseZ,headBaseZ+headH,headR*1.1,4);
+    cylinder(0,-headR*1.4,headBaseZ+headH*0.2,headBaseZ+headH*0.5,headR*0.25,6);
+  }
+
+  // SHUTDOWN
+  g+=`\n; === SHUTDOWN ===
+M106 S0
+M140 S0
+M104 S0
+G1 Z${(h+15).toFixed(1)} F3000
+G1 X0 Y220 F5000
+M84
+; === MESHMINDS CHARACTER END ===
+`;
+
+  const lines=g.split('\n').length;
+  const bytes=new Blob([g]).size;
+  log('ok',`Done! ${lines.toLocaleString()} lines · ${(bytes/1024).toFixed(0)}KB`);
+  log('warn','First print: watch for adhesion on the base and arm angles.');
+
+  const blob=new Blob([g],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const dl=document.getElementById('btnDl');
+  dl.href=url;
+  const fname=`meshminds_${S.body}_${S.class}_${S.weapon}_${h}mm.gcode`;
+  dl.download=fname;
+  dl.textContent=`⬇ Download ${fname}`;
+  dl.style.display='block';
+  log('ok',`Ready: ${fname}`);
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+refresh();
+renderLoop();
+</script>
+</body>
+</html>

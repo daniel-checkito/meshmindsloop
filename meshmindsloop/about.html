@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About Meshminds 3D</title>
+<script src="/nav.js"></script>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap");
+:root { --orange:#FF6B00; --bg:#0b0b0b; --panel:#151515; --text:#f0f0f0; --muted:#8a8a8a; --border:#262626; --display:"Bebas Neue",sans-serif; --body:"DM Sans",sans-serif; --mono:"DM Mono",monospace; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:var(--body); }
+.hero { padding:80px 20px 32px; text-align:center; border-bottom:1px solid var(--border); }
+.hero h1 { font-family:var(--display); font-size:clamp(2.8rem,10vw,6rem); line-height:0.9; letter-spacing:0.04em; }
+.hero h1 span { color:var(--orange); display:block; }
+.hero p { margin:16px auto 0; max-width:760px; color:var(--muted); font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; line-height:1.8; }
+.wrap { max-width:980px; margin:0 auto; padding:30px 20px 60px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:20px; }
+.card h2 { font-family:var(--display); font-size:1.6rem; letter-spacing:0.04em; margin-bottom:8px; }
+.card p { color:var(--muted); line-height:1.7; font-size:14px; }
+.card ul { list-style:none; margin-top:8px; color:var(--muted); }
+.card li { line-height:1.9; font-family:var(--mono); font-size:12px; }
+.card li::before { content:"-> "; color:var(--orange); }
+.cta { max-width:980px; margin:0 auto; padding:0 20px 40px; }
+.cta a { display:inline-block; background:var(--orange); color:#fff; text-decoration:none; border-radius:6px; padding:12px 16px; font-family:var(--display); letter-spacing:0.06em; }
+footer { text-align:center; border-top:1px solid var(--border); color:#555; font-family:var(--mono); font-size:10px; padding:20px; }
+@media (max-width: 760px) { .wrap { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <h1>Meshminds<span>3D</span></h1>
+    <p>Tools, experiments, and print systems by @meshminds3d. Built for creators who want less slicer friction and more shipping prints.</p>
+  </section>
+
+  <main class="wrap">
+    <article class="card">
+      <h2>What I Build</h2>
+      <p>I build practical 3D printing tools for Bambu Lab workflows: queue automation, direct G-code generators, and challenge prints that push the limits of FDM.</p>
+    </article>
+    <article class="card">
+      <h2>Who It Is For</h2>
+      <ul>
+        <li>Small print farms and Etsy sellers</li>
+        <li>Makers optimizing throughput</li>
+        <li>Creators exploring procedural geometry</li>
+        <li>Anyone who wants repeatable print systems</li>
+      </ul>
+    </article>
+    <article class="card">
+      <h2>Account Focus</h2>
+      <p>This site is the central hub for your account: your tools, your print process, and your brand voice, all in one place with dedicated subpages.</p>
+    </article>
+    <article class="card">
+      <h2>Connect</h2>
+      <p>Instagram: <a href="https://instagram.com/meshminds3d" target="_blank" style="color:var(--orange);text-decoration:none;">@meshminds3d</a><br>Use these tools, share results, and tag your prints.</p>
+    </article>
+  </main>
+
+  <section class="cta">
+    <a href="/index.html">Back to tool hub</a>
+  </section>
+
+  <footer>Meshminds 3D · Built for reliable prints</footer>
+</body>
+</html>

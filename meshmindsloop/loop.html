@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meshminds Loop · Loop Farming</title>
+<script src="/nav.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --orange: #FF6B00;
+  --orange-d: #e05a00;
+  --orange-pale: #FFF4EC;
+  --orange-pale2: #FFE8D4;
+  --yellow: #FFD600;
+  --black: #111111;
+  --white: #FFFFFF;
+  --g50: #F8F8F8;
+  --g100: #F2F2F2;
+  --g200: #E4E4E4;
+  --g300: #CCCCCC;
+  --g400: #AAAAAA;
+  --g500: #888888;
+  --g700: #444444;
+  --ok: #16a34a; --ok-bg: #f0fdf4;
+  --err: #dc2626; --err-bg: #fef2f2;
+  --warn: #d97706; --warn-bg: #fffbeb;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --r: 10px; --r-sm: 6px;
+  --sh: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+  --sh-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { background: var(--g50); color: var(--black); font-family: var(--body); font-size: 15px; line-height: 1.55; min-height: 100vh; }
+
+/* ── NAV ── */
+.nav {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--white); border-bottom: 2px solid var(--orange);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 52px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.nav-logo { font-family: var(--display); font-size: 1.45rem; letter-spacing: 0.04em; line-height: 1; }
+.nav-logo span { color: var(--orange); }
+.nav-badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  background: var(--orange-pale); color: var(--orange);
+  border: 1px solid var(--orange-pale2); border-radius: 100px;
+  padding: 3px 10px; transition: all 0.2s; cursor: default;
+}
+.nav-badge.unlocked { background: var(--ok-bg); color: var(--ok); border-color: #bbf7d0; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--black); color: var(--white);
+  padding: 36px 20px 28px; text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: 'LOOP'; position: absolute; font-family: var(--display);
+  font-size: min(20rem, 55vw); color: rgba(255,255,255,0.028);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  pointer-events: none; white-space: nowrap; line-height: 1;
+}
+.hero h1 { font-family: var(--display); font-size: clamp(2.4rem, 7vw, 4.2rem); letter-spacing: 0.03em; line-height: 0.92; margin-bottom: 10px; }
+.hero h1 em { color: var(--orange); font-style: normal; display: block; }
+.hero-sub { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px; }
+.hero-pills { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.pill { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.55); font-size: 11px; font-family: var(--mono); padding: 3px 10px; border-radius: 100px; }
+
+/* ── LAYOUT ── */
+.page { max-width: 640px; margin: 0 auto; padding: 28px 20px 80px; }
+
+/* ── STEP ── */
+.step { margin-bottom: 12px; }
+.step.hidden { display: none; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.step { animation: fadeUp 0.28s ease both; }
+
+/* ── CARD ── */
+.card { background: var(--white); border: 1.5px solid var(--g200); border-radius: var(--r); box-shadow: var(--sh); overflow: hidden; }
+.card-head { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--g100); }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--orange); color: #fff; font-family: var(--display); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-num.done { background: var(--ok); }
+.card-title { font-weight: 600; font-size: 14px; flex: 1; }
+.card-body { padding: 20px; }
+
+/* ── UPLOAD ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--g300); border-radius: var(--r-sm);
+  padding: 32px 16px; text-align: center; cursor: pointer;
+  transition: all 0.18s; position: relative; background: var(--g50);
+}
+.drop-zone:hover, .drop-zone.over { border-color: var(--orange); background: var(--orange-pale); }
+.drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+.drop-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+.drop-sub { font-size: 11px; color: var(--g500); font-family: var(--mono); }
+
+/* ── QUEUE ── */
+.queue-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.queue-item {
+  background: var(--white); border: 1.5px solid var(--g200); border-radius: var(--r-sm);
+  padding: 10px 12px; display: flex; align-items: flex-start; gap: 10px;
+  cursor: grab; transition: box-shadow 0.15s, border-color 0.15s; user-select: none;
+  position: relative;
+}
+.queue-item:active { cursor: grabbing; }
+.queue-item.dragging { opacity: 0.4; }
+.queue-item.drag-over { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-pale); }
+.queue-item.has-warn { border-left: 3px solid var(--warn); }
+.queue-item.has-err { border-left: 3px solid var(--err); }
+.qi-drag { font-size: 16px; color: var(--g300); padding-top: 2px; flex-shrink: 0; cursor: grab; }
+.qi-main { flex: 1; min-width: 0; }
+.qi-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.qi-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.qi-tag { font-family: var(--mono); font-size: 10px; background: var(--g100); color: var(--g700); border-radius: 3px; padding: 2px 6px; }
+.qi-tag.orange { background: var(--orange-pale); color: var(--orange); }
+.qi-tag.warn { background: var(--warn-bg); color: var(--warn); }
+.qi-tag.err { background: var(--err-bg); color: var(--err); }
+.qi-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.qi-qty-wrap { display: flex; align-items: center; gap: 4px; }
+.qi-qty-btn { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--g200); background: var(--white); color: var(--g700); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; flex-shrink: 0; touch-action: manipulation; }
+.qi-qty-btn:hover { border-color: var(--orange); color: var(--orange); }
+.qi-qty { font-family: var(--display); font-size: 1.4rem; color: var(--orange); min-width: 28px; text-align: center; line-height: 1; }
+.qi-del { background: none; border: none; color: var(--g300); font-size: 16px; cursor: pointer; padding: 4px; border-radius: 4px; transition: color 0.12s; flex-shrink: 0; touch-action: manipulation; }
+.qi-del:hover { color: var(--err); }
+.qi-pause { background: none; border: 1.5px solid var(--g200); color: var(--g500); font-size: 10px; font-family: var(--mono); cursor: pointer; padding: 3px 8px; border-radius: 4px; transition: all 0.12s; touch-action: manipulation; }
+.qi-pause.active { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+.qi-pause:hover { border-color: var(--warn); color: var(--warn); }
+.qi-bed { margin-top: 8px; display: none; }
+.qi-bed.open { display: block; }
+.qi-bed-toggle { font-family: var(--mono); font-size: 10px; color: var(--g400); cursor: pointer; display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.qi-bed-toggle:hover { color: var(--orange); }
+
+/* Mini bed grid */
+.mini-bed { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; width: 80px; margin-top: 6px; }
+.mini-cell { aspect-ratio: 1; background: var(--g100); border-radius: 2px; cursor: pointer; transition: background 0.1s; border: 1px solid var(--g200); }
+.mini-cell.sel { background: var(--orange); border-color: var(--orange-d); }
+.mini-cell:hover { background: var(--orange-pale2); }
+
+/* ── FORM ── */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+label, .lbl { display: block; font-size: 11px; font-weight: 600; color: var(--g700); margin-bottom: 5px; letter-spacing: 0.03em; text-transform: uppercase; font-family: var(--mono); }
+.lbl-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--g400); font-size: 10px; margin-left: 6px; }
+input[type=number], select, input[type=text] {
+  width: 100%; background: var(--white); border: 1.5px solid var(--g200);
+  color: var(--black); font-family: var(--body); font-size: 14px;
+  border-radius: var(--r-sm); padding: 9px 12px; outline: none; transition: border-color 0.18s;
+  -webkit-appearance: none; appearance: none;
+}
+input[type=number]:focus, select:focus, input[type=text]:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,107,0,0.1); }
+select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+@media(max-width:500px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+/* Loop slider */
+.loop-row { display: flex; align-items: center; gap: 14px; }
+.loop-slider {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 3px; background: var(--g200); outline: none; cursor: pointer; min-width: 0;
+}
+.loop-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--orange); cursor: pointer; box-shadow: 0 2px 8px rgba(255,107,0,0.35); border: 3px solid white; }
+.loop-slider::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--orange); border: 3px solid white; cursor: pointer; }
+.loop-num { font-family: var(--display); font-size: 2.6rem; color: var(--orange); min-width: 46px; text-align: center; line-height: 1; flex-shrink: 0; }
+
+/* ── STATS PANEL ── */
+.stats-panel {
+  background: var(--black); color: var(--white);
+  border-radius: var(--r); padding: 18px; margin-bottom: 14px;
+  display: none;
+}
+.stats-panel.visible { display: block; }
+.stats-title { font-family: var(--display); font-size: 1rem; letter-spacing: 0.06em; color: var(--orange); margin-bottom: 14px; }
+.stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+@media(min-width:500px) { .stats-grid { grid-template-columns: repeat(4,1fr); } }
+.stat { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 12px 10px; text-align: center; }
+.stat-val { font-family: var(--display); font-size: 1.6rem; color: var(--orange); display: block; line-height: 1; margin-bottom: 4px; }
+.stat-val.green { color: #4ade80; }
+.stat-val.yellow { color: var(--yellow); }
+.stat-lbl { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); }
+.stats-savings { margin-top: 12px; background: rgba(255,107,0,0.12); border: 1px solid rgba(255,107,0,0.25); border-radius: 6px; padding: 10px 14px; font-size: 13px; color: rgba(255,255,255,0.8); }
+.stats-savings strong { color: var(--orange); }
+.stats-timeline { margin-top: 10px; }
+.tl-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px; color: rgba(255,255,255,0.6); font-family: var(--mono); }
+.tl-item:last-child { border-bottom: none; }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.tl-dot.print { background: var(--orange); }
+.tl-dot.eject { background: #60a5fa; }
+.tl-dot.pause { background: var(--yellow); }
+.tl-item-label { flex: 1; }
+.tl-item-time { color: rgba(255,255,255,0.35); }
+
+/* ── TOGGLES ── */
+.tog-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--g100); }
+.tog-row:last-child { border-bottom: none; }
+.tog-info { flex: 1; }
+.tog-title { font-size: 13px; font-weight: 500; margin-bottom: 1px; }
+.tog-desc { font-size: 11px; color: var(--g500); font-family: var(--mono); }
+.tog { position: relative; width: 36px; height: 20px; flex-shrink: 0; margin-left: 12px; }
+.tog input { opacity: 0; width: 0; height: 0; }
+.tog-track { position: absolute; inset: 0; background: var(--g300); border-radius: 20px; cursor: pointer; transition: background 0.18s; }
+.tog input:checked + .tog-track { background: var(--orange); }
+.tog-track::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: transform 0.18s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.tog input:checked + .tog-track::after { transform: translateX(16px); }
+
+/* ── ADVANCED ── */
+.adv-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 13px 20px; border-top: 1px solid var(--g100); font-size: 11px; font-family: var(--mono); color: var(--g400); transition: color 0.15s; user-select: none; }
+.adv-toggle:hover { color: var(--orange); }
+.adv-arrow { transition: transform 0.2s; font-size: 9px; }
+.adv-arrow.open { transform: rotate(90deg); }
+.adv-panel { display: none; padding: 16px 20px 20px; border-top: 1px solid var(--g100); }
+.adv-panel.open { display: block; animation: fadeUp 0.2s ease; }
+
+/* ── BED GRID ── */
+.bed-section { margin-top: 14px; }
+.bed-outer { display: flex; align-items: flex-start; justify-content: center; gap: 6px; }
+.bed-y-labels { display: flex; flex-direction: column-reverse; height: min(220px, 56vw); justify-content: space-around; flex-shrink: 0; }
+.bed-y-labels span { font-size: 9px; font-family: var(--mono); color: var(--g400); width: 24px; text-align: right; }
+.bed-inner { flex: 1; max-width: 260px; }
+.bed-grid-box { border: 2px solid var(--black); border-radius: 4px; overflow: hidden; width: 100%; }
+.bed-grid { display: grid; grid-template-columns: repeat(4,1fr); aspect-ratio: 1; background: var(--g50); }
+.bed-cell { border: 1px solid var(--g200); cursor: pointer; transition: background 0.1s; display: flex; align-items: center; justify-content: center; min-height: 40px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.bed-cell:hover { background: var(--orange-pale); }
+.bed-cell.sel { background: var(--orange); }
+.bed-cell.sel::after { content: '✓'; color: white; font-size: 12px; font-weight: 700; }
+.bed-x-labels { display: flex; padding: 3px 0 0; }
+.bed-x-labels span { flex: 1; text-align: center; font-size: 9px; font-family: var(--mono); color: var(--g400); }
+.bed-hint { font-family: var(--mono); font-size: 10px; color: var(--g400); text-align: center; margin-top: 6px; }
+.bed-btns { display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+.btn-xs2 { background: var(--white); border: 1.5px solid var(--g200); color: var(--g700); font-size: 10px; font-family: var(--mono); padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: all 0.12s; touch-action: manipulation; min-height: 30px; }
+.btn-xs2:hover { border-color: var(--orange); color: var(--orange); }
+.btn-xs2.orange { background: var(--orange); border-color: var(--orange); color: white; }
+.btn-xs2.orange:hover { background: var(--orange-d); }
+.sweep-info { background: var(--g50); border: 1px solid var(--g200); border-radius: 5px; padding: 8px 12px; font-family: var(--mono); font-size: 10px; color: var(--g500); margin-top: 8px; text-align: center; }
+.sweep-info strong { color: var(--orange); }
+.auto-banner { display: none; align-items: center; gap: 8px; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-family: var(--mono); margin-bottom: 10px; }
+.auto-banner.vis { display: flex; }
+.auto-banner.ok { background: var(--ok-bg); color: var(--ok); }
+.auto-banner.warn { background: var(--warn-bg); color: var(--warn); }
+
+/* ── SAFETY ── */
+.safety-box { background: var(--warn-bg); border: 1.5px solid rgba(217,119,6,0.35); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
+.safety-title { font-weight: 700; font-size: 13px; color: var(--warn); margin-bottom: 7px; }
+.safety-list { list-style: none; font-size: 12px; color: #92400e; display: flex; flex-direction: column; gap: 3px; }
+.safety-list li { padding-left: 14px; position: relative; line-height: 1.4; }
+.safety-list li::before { content: '→'; position: absolute; left: 0; color: var(--warn); }
+.safety-confirm { margin-top: 10px; display: flex; align-items: flex-start; gap: 9px; background: rgba(255,255,255,0.5); border-radius: 5px; padding: 9px; cursor: pointer; }
+.safety-confirm input { margin-top: 2px; accent-color: var(--orange); width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+.safety-confirm-text { font-size: 12px; font-weight: 600; color: #92400e; }
+
+/* ── SUMMARY ── */
+.summary-box { background: var(--g50); border: 1px solid var(--g200); border-radius: 6px; padding: 10px 13px; margin-bottom: 12px; font-family: var(--mono); font-size: 11px; line-height: 2; color: var(--g700); }
+
+/* ── BUTTONS ── */
+.btn-proceed { width: 100%; background: var(--black); border: none; color: white; font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.07em; padding: 14px 24px; border-radius: var(--r-sm); cursor: pointer; transition: all 0.18s; margin-top: 14px; min-height: 50px; touch-action: manipulation; }
+.btn-proceed:hover { background: #2a2a2a; }
+.btn-generate { width: 100%; background: var(--orange); border: none; color: white; font-family: var(--display); font-size: 1.35rem; letter-spacing: 0.07em; padding: 16px 24px; border-radius: var(--r-sm); cursor: pointer; transition: all 0.18s; min-height: 54px; touch-action: manipulation; }
+.btn-generate:hover { background: var(--orange-d); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,107,0,0.3); }
+.btn-generate:disabled { background: var(--g300); color: var(--g400); cursor: not-allowed; transform: none; box-shadow: none; }
+.dl-wrap { display: none; margin-top: 10px; }
+.dl-wrap.vis { display: block; }
+.btn-dl { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: var(--ok); border: none; color: white; font-family: var(--display); font-size: 1.2rem; letter-spacing: 0.07em; padding: 15px 24px; border-radius: var(--r-sm); cursor: pointer; text-decoration: none; transition: all 0.18s; min-height: 52px; touch-action: manipulation; }
+.btn-dl:hover { background: #15803d; }
+
+/* ── LOG ── */
+.log-wrap { display: none; background: var(--g50); border: 1px solid var(--g200); border-radius: 6px; padding: 10px; max-height: 150px; overflow-y: auto; font-family: var(--mono); font-size: 10px; line-height: 1.9; margin-top: 10px; }
+.log-wrap.vis { display: block; }
+.ll { color: var(--g400); }
+.ll.ok { color: var(--ok); }
+.ll.info { color: var(--orange); }
+.ll.warn { color: var(--warn); }
+.ll.err { color: var(--err); }
+
+/* ── GATE ── */
+.gate-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(6px); }
+.gate-bg.vis { display: flex; }
+.gate-card { background: var(--white); border-radius: 14px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: var(--sh-lg); animation: fadeUp 0.25s ease; text-align: center; }
+.gate-logo { font-family: var(--display); font-size: 1.6rem; margin-bottom: 2px; }
+.gate-logo span { color: var(--orange); }
+.gate-tag { font-family: var(--mono); font-size: 10px; color: var(--g400); margin-bottom: 16px; }
+.gate-h { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+.gate-p { font-size: 13px; color: var(--g500); margin-bottom: 16px; line-height: 1.5; }
+.gate-perks { list-style: none; text-align: left; margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+.gate-perks li { font-size: 12px; display: flex; align-items: center; gap: 7px; }
+.gate-perks li::before { content: '✓'; width: 18px; height: 18px; background: var(--orange); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+.gate-input { width: 100%; border: 1.5px solid var(--g200); border-radius: 6px; padding: 10px 13px; font-size: 14px; font-family: var(--body); outline: none; margin-bottom: 8px; transition: border-color 0.18s; }
+.gate-input:focus { border-color: var(--orange); }
+.gate-input::placeholder { color: var(--g300); }
+.gate-fine { font-size: 10px; color: var(--g400); margin-top: 8px; font-family: var(--mono); }
+
+/* ── DIVIDER ── */
+.div { height: 1px; background: var(--g100); margin: 14px 0; }
+
+/* ── FOOTER ── */
+footer { background: var(--black); color: rgba(255,255,255,0.3); text-align: center; padding: 20px; font-family: var(--mono); font-size: 10px; }
+footer a { color: var(--orange); text-decoration: none; }
+
+/* ── THUMBNAIL PICKER ── */
+.thumb-section { margin-top: 14px; }
+.thumb-drop {
+  border: 2px dashed var(--g300); border-radius: var(--r-sm);
+  padding: 16px; display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: all 0.18s; background: var(--g50); position: relative;
+}
+.thumb-drop:hover { border-color: var(--orange); background: var(--orange-pale); }
+.thumb-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.thumb-preview {
+  width: 56px; height: 56px; border-radius: 5px; border: 1px solid var(--g200);
+  background: var(--g100); display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0; overflow: hidden;
+}
+.thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-info { flex: 1; }
+.thumb-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.thumb-sub { font-size: 11px; color: var(--g500); font-family: var(--mono); }
+.thumb-clear { background: none; border: 1px solid var(--g200); color: var(--g400); font-size: 11px; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-family: var(--mono); transition: all 0.12s; display: none; }
+.thumb-clear.vis { display: block; }
+.thumb-clear:hover { border-color: var(--err); color: var(--err); }
+
+/* ── PRINTER CONFIG BADGE ── */
+.printer-badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; background: var(--orange-pale); color: var(--orange); border: 1px solid var(--orange-pale2); border-radius: 100px; padding: 3px 10px; margin-bottom: 10px; }
+
+@media(max-width:480px) {
+  .nav { padding: 0 14px; }
+  .hero { padding: 24px 16px 22px; }
+  .page { padding: 16px 12px 60px; }
+  .card-body { padding: 16px; }
+  .adv-panel { padding: 14px 16px 16px; }
+  .adv-toggle { padding: 12px 16px; }
+  .stats-grid { grid-template-columns: repeat(2,1fr); }
+  .qi-controls { flex-direction: column; align-items: flex-end; gap: 5px; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="hero">
+  <h1>Infinite<em>3D Printing</em></h1>
+  <p class="hero-sub">Bambu Lab A1 Mini · Print Queue · Auto-eject · Loop up to 10×</p>
+  <div class="hero-pills">
+    <span class="pill">PLA + Textured PEI</span>
+    <span class="pill">Multi-file queue</span>
+    <span class="pill">Smart eject</span>
+    <span class="pill">Free tool</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- STEP 1: Upload & Queue -->
+  <div class="step" id="step1">
+    <div class="card">
+      <div class="card-head">
+        <div class="step-num" id="dot1">1</div>
+        <div class="card-title">Build your print queue</div>
+      </div>
+      <div class="card-body">
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".gcode" multiple />
+          <span class="drop-icon">📂</span>
+          <div class="drop-title">Drop .gcode files here</div>
+          <div class="drop-sub">Multiple files supported · Bambu Studio exports only · Drag to reorder below</div>
+        </div>
+
+        <div class="queue-list" id="queueList"></div>
+
+        <div id="queueEmpty" style="text-align:center;padding:20px 0;font-family:var(--mono);font-size:11px;color:var(--g400);display:none;">
+          No files in queue yet — drop some gcode files above
+        </div>
+
+        <button class="btn-proceed" id="btnToStep2" style="display:none;" onclick="goStep(2)">
+          Continue → Configure Settings ↓
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Settings -->
+  <div class="step hidden" id="step2">
+    <div class="card">
+      <div class="card-head">
+        <div class="step-num" id="dot2">2</div>
+        <div class="card-title">Configure loop settings</div>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Printer</label>
+            <select id="printerModel" onchange="onPrinterChange()">
+              <option value="a1">Bambu Lab A1 (256×256mm)</option>
+              <option value="a1mini">Bambu Lab A1 Mini (180×180mm)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Filament <span class="lbl-hint">PLA only!</span></label>
+            <select id="filamentType"><option value="pla">PLA</option><option value="pla+">PLA+</option></select>
+          </div>
+        </div>
+
+        <div class="thumb-section">
+          <label>Custom Thumbnail <span class="lbl-hint">shown on printer screen</span></label>
+          <div class="thumb-drop" id="thumbDrop">
+            <input type="file" id="thumbInput" accept="image/png,image/jpeg,image/jpg" />
+            <div class="thumb-preview" id="thumbPreview">🖼️</div>
+            <div class="thumb-info">
+              <div class="thumb-title" id="thumbTitle">Add a thumbnail</div>
+              <div class="thumb-sub" id="thumbSub">PNG or JPG · shown on Bambu printer screen · optional</div>
+            </div>
+            <button class="thumb-clear" id="thumbClear" onclick="clearThumb(event)">Remove</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Cooldown per eject <span class="lbl-hint">minutes</span></label>
+          <input type="number" id="cooldownMins" value="20" min="5" max="120" step="5" oninput="refreshStats()" />
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>Room Temperature <span class="lbl-hint">°C</span></label>
+            <input type="number" id="roomTemp" value="20" min="10" max="35" step="1" oninput="checkRoomTemp()" />
+          </div>
+          <div class="field">
+            <label>Filament cost <span class="lbl-hint">€ per kg</span></label>
+            <input type="number" id="filamentCost" value="20" min="1" max="200" step="1" oninput="refreshStats()" />
+          </div>
+        </div>
+        <div id="tempWarn"></div>
+      </div>
+
+      <!-- Advanced -->
+      <div class="adv-toggle" onclick="toggleAdv()">
+        <span class="adv-arrow" id="advArrow">▶</span> Advanced Settings
+        <span style="margin-left:auto;font-size:10px;background:var(--orange-pale);color:var(--orange);padding:2px 8px;border-radius:3px;font-family:var(--mono);">Optional</span>
+      </div>
+      <div class="adv-panel" id="advPanel">
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Eject Speed <span class="lbl-hint">mm/min</span></label>
+            <input type="number" id="ejectSpeed" value="1000" min="500" max="3000" step="100" />
+          </div>
+          <div class="field">
+            <label>Nozzle Z <span class="lbl-hint">mm above bed</span></label>
+            <input type="number" id="nozzleZ" value="0.2" min="0.1" max="2.0" step="0.1" />
+          </div>
+        </div>
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Bed hold temp <span class="lbl-hint">°C (0 = off)</span></label>
+            <input type="number" id="bedHoldTemp" value="0" min="0" max="40" step="5" />
+          </div>
+          <div class="field">
+            <label>Sweep passes</label>
+            <input type="number" id="sweepPasses" value="2" min="1" max="5" step="1" />
+          </div>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Vibration Eject (M970)</div><div class="tog-desc">Vibrate plate after cooldown to loosen parts</div></div>
+          <label class="tog"><input type="checkbox" id="optVibrate" checked /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Cool Hotend Between Loops</div><div class="tog-desc">Nozzle to 0°C during cooldown (recommended)</div></div>
+          <label class="tog"><input type="checkbox" id="optCoolHotend" checked /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Park Head After Eject</div><div class="tog-desc">Move head to rear-left before next print</div></div>
+          <label class="tog"><input type="checkbox" id="optParkHead" checked /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Nozzle Prime Line</div><div class="tog-desc">Extrude a purge line before each restart</div></div>
+          <label class="tog"><input type="checkbox" id="optPrime" checked /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Progressive Cooldown</div><div class="tog-desc">+5 min per loop for residual heat buildup</div></div>
+          <label class="tog"><input type="checkbox" id="optProgCool" /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Filament Runout Detection</div><div class="tog-desc">Keep M412 active across all loops</div></div>
+          <label class="tog"><input type="checkbox" id="optRunout" checked /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Strip Thumbnail</div><div class="tog-desc">Remove embedded PNG from header (smaller file)</div></div>
+          <label class="tog"><input type="checkbox" id="optStrip" checked /><div class="tog-track"></div></label>
+        </div>
+        <div class="tog-row">
+          <div class="tog-info"><div class="tog-title">Loop Markers in GCode</div><div class="tog-desc">Inject ; === LOOP N === comments for debugging</div></div>
+          <label class="tog"><input type="checkbox" id="optComments" checked /><div class="tog-track"></div></label>
+        </div>
+      </div>
+
+      <div style="padding:0 20px 20px;">
+        <button class="btn-proceed" onclick="goStep(3)">Continue → Bed Layout ↓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Bed layout (global default) -->
+  <div class="step hidden" id="step3">
+    <div class="card">
+      <div class="card-head">
+        <div class="step-num" id="dot3">3</div>
+        <div class="card-title">Set bed zones</div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--g500);font-family:var(--mono);margin-bottom:12px;">Default zones for all files. You can override per-file in the queue above.</p>
+
+        <div class="auto-banner" id="autoBanner">
+          <span id="autoBannerMsg"></span>
+        </div>
+
+        <div class="bed-section">
+          <div class="bed-outer">
+            <div class="bed-y-labels" id="bedYLabels">
+              <span>0</span><span>64</span><span>128</span><span>192</span><span>256</span>
+            </div>
+            <div class="bed-inner">
+              <div class="bed-grid-box">
+                <div class="bed-grid" id="bedGrid"></div>
+              </div>
+              <div class="bed-x-labels" id="bedXLabels">
+                <span>0</span><span>64</span><span>128</span><span>192</span><span>256</span>
+              </div>
+            </div>
+          </div>
+          <div class="bed-hint" id="bedHint">A1 · 256×256mm · Tap zones to select</div>
+          <div class="bed-btns">
+            <button class="btn-xs2 orange" onclick="autoDetect()" id="btnAutoDetect">⚡ Auto-detect</button>
+            <button class="btn-xs2" onclick="selectAllCells()">Full Bed</button>
+            <button class="btn-xs2" onclick="clearCells()">Clear</button>
+          </div>
+          <div class="sweep-info" id="sweepInfo">Select zones or tap Auto-detect</div>
+        </div>
+
+        <button class="btn-proceed" onclick="goStep(4)">Continue → Review & Generate ↓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Stats + Safety + Generate -->
+  <div class="step hidden" id="step4">
+
+    <!-- Statistics Panel -->
+    <div class="stats-panel" id="statsPanel">
+      <div class="stats-title">📊 QUEUE STATISTICS</div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="stats-savings" id="statsSavings"></div>
+      <div class="stats-timeline" id="statsTimeline"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="step-num" id="dot4">4</div>
+        <div class="card-title">Safety Check & Generate</div>
+      </div>
+      <div class="card-body">
+        <div class="safety-box">
+          <div class="safety-title">⚠️ Read before downloading</div>
+          <ul class="safety-list">
+            <li>Always supervise your printer during the first full run</li>
+            <li>PLA + Textured PEI only — PETG will not release and may damage your printer</li>
+            <li>Tilt printer ~20° so parts slide into a collection box</li>
+            <li>If parts stick, increase cooldown time or lower room temperature</li>
+            <li>Tall prints risk collision with the eject sweep — check Z height warnings</li>
+            <li>Repeated ejections cause wear on the print head over time</li>
+            <li>Meshminds is not liable for any damage caused by this tool</li>
+          </ul>
+          <label class="safety-confirm">
+            <input type="checkbox" id="safetyCheck" onchange="updateGenBtn()" />
+            <span class="safety-confirm-text">I understand the risks and will watch my printer on the first run.</span>
+          </label>
+        </div>
+
+        <div class="summary-box" id="summaryBox"></div>
+
+        <button class="btn-generate" id="btnGenerate" disabled onclick="handleGenerate()">
+          Generate Looped GCode →
+        </button>
+
+        <div class="log-wrap" id="logWrap"></div>
+
+        <div class="dl-wrap" id="dlWrap">
+          <a class="btn-dl" id="btnDl" download="">⬇ Download GCode</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- EMAIL GATE -->
+<div class="gate-bg" id="gateBg">
+  <div class="gate-card">
+    <div class="gate-logo">Meshminds<span>Loop</span></div>
+    <div class="gate-tag">3 free exports used</div>
+    <div class="gate-h">Unlock unlimited exports</div>
+    <div class="gate-p">Enter your email to keep using Meshminds Loop for free. We'll also send 3D print farm tips from @meshminds3d.</div>
+    <ul class="gate-perks">
+      <li>Unlimited GCode exports</li>
+      <li>Early access to new features</li>
+      <li>3D print farm tips weekly</li>
+    </ul>
+    <input class="gate-input" type="email" id="gateEmail" placeholder="your@email.com" />
+    <button class="btn-generate" style="font-size:1rem;padding:12px;" onclick="submitGate()">Unlock Free Access →</button>
+    <div class="gate-fine">No spam. Unsubscribe anytime. Stored locally only.</div>
+  </div>
+</div>
+
+<footer>
+  <p>Meshminds Loop · <a href="https://instagram.com/meshminds3d">@meshminds3d</a> · Based on <a href="https://openscan.eu/blogs/news/bambulab_infinimod" target="_blank">OpenScan InfiniMod</a></p>
+  <p style="margin-top:5px;opacity:0.5;">PLA + Textured PEI only · Always watch your printer · Use at your own risk</p>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let queue = [];
+let globalCells = new Set();
+let dragSrcIdx = null;
+let uploadCount = parseInt(localStorage.getItem('mm_uploads') || '0');
+let emailUnlocked = !!localStorage.getItem('mm_email');
+const FREE_LIMIT = 3;
+let thumbDataUrl = null; // base64 PNG for thumbnail injection
+
+// Printer configs
+const PRINTERS = {
+  a1:     { name: 'Bambu Lab A1',      bed: 256, cell: 64,  maxZ: 256 },
+  a1mini: { name: 'Bambu Lab A1 Mini', bed: 180, cell: 45,  maxZ: 180 },
+};
+function getPrinter() {
+  return PRINTERS[document.getElementById('printerModel')?.value || 'a1'];
+}
+
+function uid() { return Math.random().toString(36).slice(2,8); }
+
+// ══════════════════════════════════════════════════
+// NAV BADGE
+// ══════════════════════════════════════════════════
+function updateBadge() {
+  const el = document.getElementById('navBadge'); if (!el) return;
+  if (emailUnlocked) {
+    el.textContent = 'Unlimited ✓';
+    el.classList.add('unlocked');
+  } else {
+    const left = Math.max(0, FREE_LIMIT - uploadCount);
+    el.textContent = `${left} free export${left !== 1 ? 's' : ''} left`;
+    el.classList.remove('unlocked');
+  }
+}
+updateBadge();
+
+// ══════════════════════════════════════════════════
+// PRINTER CHANGE — update bed grid labels dynamically
+// ══════════════════════════════════════════════════
+function onPrinterChange() {
+  const p = getPrinter();
+  const step = p.cell, size = p.bed;
+  const vals = [0, step, step*2, step*3, size];
+  const yEl = document.getElementById('bedYLabels');
+  const xEl = document.getElementById('bedXLabels');
+  if (yEl) yEl.innerHTML = vals.map(v=>`<span>${v}</span>`).join('');
+  if (xEl) xEl.innerHTML = vals.map(v=>`<span>${v}</span>`).join('');
+  const hint = document.getElementById('bedHint');
+  if (hint) hint.textContent = `${p.name} · ${size}×${size}mm · Tap zones to select`;
+  globalCells.clear();
+  renderBed();
+  updateSweepInfo();
+}
+
+// ══════════════════════════════════════════════════
+// THUMBNAIL PICKER
+// ══════════════════════════════════════════════════
+const thumbInput = document.getElementById('thumbInput');
+const thumbDropEl = document.getElementById('thumbDrop');
+
+thumbInput && thumbInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleThumb(e.target.files[0]);
+});
+thumbDropEl && thumbDropEl.addEventListener('dragover', e => { e.preventDefault(); thumbDropEl.style.borderColor='var(--orange)'; });
+thumbDropEl && thumbDropEl.addEventListener('dragleave', () => { thumbDropEl.style.borderColor=''; });
+thumbDropEl && thumbDropEl.addEventListener('drop', e => {
+  e.preventDefault(); thumbDropEl.style.borderColor='';
+  const file = [...e.dataTransfer.files].find(f => f.type.startsWith('image/'));
+  if (file) handleThumb(file);
+});
+
+function handleThumb(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    thumbDataUrl = ev.target.result;
+    document.getElementById('thumbPreview').innerHTML = `<img src="${thumbDataUrl}" alt="" />`;
+    document.getElementById('thumbTitle').textContent = file.name;
+    document.getElementById('thumbSub').textContent = `${(file.size/1024).toFixed(0)} KB · will be embedded in gcode header`;
+    document.getElementById('thumbClear').classList.add('vis');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearThumb(e) {
+  e.stopPropagation();
+  thumbDataUrl = null;
+  if (thumbInput) thumbInput.value = '';
+  document.getElementById('thumbPreview').innerHTML = '🖼️';
+  document.getElementById('thumbTitle').textContent = 'Add a thumbnail';
+  document.getElementById('thumbSub').textContent = 'PNG or JPG · shown on Bambu printer screen · optional';
+  document.getElementById('thumbClear').classList.remove('vis');
+}
+// ══════════════════════════════════════════════════
+function goStep(n) {
+  const el = document.getElementById('step' + n);
+  if (!el) return;
+  el.classList.remove('hidden');
+  if (n === 3 && queue.length > 0) setTimeout(autoDetect, 200);
+  if (n === 4) { buildSummary(); refreshStats(); }
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+}
+function hideStepsAfter(n) {
+  for (let i = n+1; i <= 4; i++) document.getElementById('step'+i)?.classList.add('hidden');
+}
+
+// ══════════════════════════════════════════════════
+// FILE HANDLING
+// ══════════════════════════════════════════════════
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  handleFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener('change', e => { handleFiles([...e.target.files]); fileInput.value = ''; });
+
+async function handleFiles(files) {
+  const gcodeFiles = files.filter(f => f.name.toLowerCase().endsWith('.gcode'));
+  if (!gcodeFiles.length) { alert('Please upload .gcode files only.'); return; }
+  for (const file of gcodeFiles) {
+    const content = await file.text();
+    const meta = parseGcodeMeta(content);
+    const suit = analyzeGcode(content, file.size, meta);
+    queue.push({
+      id: uid(),
+      name: file.name.replace(/\.gcode$/i,''),
+      content,
+      qty: 1,
+      pause: false,
+      cells: null, // null = use global
+      suitability: suit,
+      meta
+    });
+  }
+  renderQueue();
+  document.getElementById('btnToStep2').style.display = 'block';
+  hideStepsAfter(1);
+}
+
+function parseGcodeMeta(gcode) {
+  const meta = {};
+  const lines = gcode.split('\n').slice(0, 30);
+  for (const line of lines) {
+    const mt = line.match(/;\s*model printing time:\s*(.+)/i);
+    if (mt) meta.printTimeStr = mt[1].trim();
+    const mw = line.match(/;\s*total filament weight.*?:\s*([\d.]+)/i);
+    if (mw) meta.weightG = parseFloat(mw[1]);
+    const mz = line.match(/;\s*max_z_height:\s*([\d.]+)/i);
+    if (mz) meta.maxZ = parseFloat(mz[1]);
+    const ml = line.match(/;\s*total layer number:\s*(\d+)/i);
+    if (ml) meta.layers = parseInt(ml[1]);
+  }
+  // Parse print time string -> minutes
+  if (meta.printTimeStr) {
+    let mins = 0;
+    const h = meta.printTimeStr.match(/(\d+)h/); if (h) mins += parseInt(h[1]) * 60;
+    const m = meta.printTimeStr.match(/(\d+)m/); if (m) mins += parseInt(m[1]);
+    meta.printMins = mins || 0;
+  }
+  return meta;
+}
+
+function analyzeGcode(gcode, size, meta) {
+  const issues = [];
+  let score = 0;
+  const mb = size / 1048576;
+  const printerMaxZ = getPrinter().maxZ;
+  if (mb > 50) issues.push({ type: 'err', msg: `Very large file (${mb.toFixed(1)}MB) — eject may fail` });
+  else { score++; }
+  // Collision risk: warn if print is taller than ~15% of bed Z (e.g. 38mm on A1, 27mm on Mini)
+  const collisionThreshold = Math.round(printerMaxZ * 0.15);
+  if (meta.maxZ > collisionThreshold) issues.push({ type: 'warn', msg: `Tall print (${meta.maxZ}mm) — collision risk on eject sweep` });
+  else { score++; }
+  if (meta.layers > 500) issues.push({ type: 'warn', msg: `${meta.layers} layers — increase nozzle Z in Advanced` });
+  else { score++; }
+  const hasAMS = gcode.includes('T1') || gcode.includes('T2');
+  if (hasAMS) issues.push({ type: 'warn', msg: 'Multi-material — eject timing less reliable' });
+  else { score++; }
+  const hasBrim = /brim|raft/i.test(gcode.slice(0,5000));
+  if (hasBrim) issues.push({ type: 'warn', msg: 'Brim/raft detected — may stick after cooldown' });
+  else { score++; }
+  const pct = score / 5;
+  const suit = pct >= 0.8 ? 'good' : pct >= 0.5 ? 'caution' : 'bad';
+  return { suit, issues };
+}
+
+// ══════════════════════════════════════════════════
+// QUEUE RENDER
+// ══════════════════════════════════════════════════
+function renderQueue() {
+  const list = document.getElementById('queueList');
+  const empty = document.getElementById('queueEmpty');
+  list.innerHTML = '';
+  if (queue.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  queue.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'queue-item' + (item.suitability.suit === 'caution' ? ' has-warn' : item.suitability.suit === 'bad' ? ' has-err' : '');
+    div.draggable = true;
+    div.dataset.idx = idx;
+
+    // Build issue tags
+    const issueTags = item.suitability.issues.map(iss =>
+      `<span class="qi-tag ${iss.type}">${iss.msg}</span>`).join('');
+
+    // Meta tags
+    const metaTags = [];
+    if (item.meta.printTimeStr) metaTags.push(`<span class="qi-tag">⏱ ${item.meta.printTimeStr}</span>`);
+    if (item.meta.weightG) metaTags.push(`<span class="qi-tag">⚖ ${item.meta.weightG}g</span>`);
+    if (item.meta.maxZ) metaTags.push(`<span class="qi-tag">↕ ${item.meta.maxZ}mm</span>`);
+    if (item.meta.layers) metaTags.push(`<span class="qi-tag">${item.meta.layers} layers</span>`);
+    const suitTag = `<span class="qi-tag ${item.suitability.suit === 'good' ? 'orange' : item.suitability.suit === 'caution' ? 'warn' : 'err'}">${item.suitability.suit === 'good' ? '✓ OK' : item.suitability.suit === 'caution' ? '⚠ Caution' : '✗ Risk'}</span>`;
+
+    // Per-file bed cells (mini grid)
+    const cells = item.cells || globalCells;
+    const miniCells = Array.from({length:16}, (_,i) =>
+      `<div class="mini-cell${cells.has(i)?' sel':''}" onclick="toggleMiniCell(${idx},${i})"></div>`).join('');
+
+    div.innerHTML = `
+      <div class="qi-drag">⠿</div>
+      <div class="qi-main">
+        <div class="qi-name">${item.name}</div>
+        <div class="qi-meta">
+          ${suitTag}
+          ${metaTags.join('')}
+          ${issueTags}
+        </div>
+        <div class="qi-bed-toggle" onclick="toggleQiBed(${idx})">
+          <span>▶</span> <span>bed zones</span>
+        </div>
+        <div class="qi-bed" id="qiBed_${idx}">
+          <div class="mini-bed" id="miniBed_${idx}">${miniCells}</div>
+        </div>
+      </div>
+      <div class="qi-controls">
+        <div class="qi-qty-wrap">
+          <button class="qi-qty-btn" onclick="changeQty(${idx},-1)">−</button>
+          <div class="qi-qty">${item.qty}</div>
+          <button class="qi-qty-btn" onclick="changeQty(${idx},1)">+</button>
+        </div>
+        <button class="qi-pause${item.pause?' active':''}" onclick="togglePause(${idx})">
+          ${item.pause ? '⏸ pause after' : '+ pause'}
+        </button>
+        <button class="qi-del" onclick="removeItem(${idx})" title="Remove">✕</button>
+      </div>
+    `;
+
+    // Drag events
+    div.addEventListener('dragstart', e => { dragSrcIdx = idx; div.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    div.addEventListener('dragend', () => { div.classList.remove('dragging'); document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over')); });
+    div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drag-over'); });
+    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+    div.addEventListener('drop', e => {
+      e.preventDefault(); div.classList.remove('drag-over');
+      if (dragSrcIdx !== null && dragSrcIdx !== idx) {
+        const moved = queue.splice(dragSrcIdx, 1)[0];
+        queue.splice(idx, 0, moved);
+        dragSrcIdx = null;
+        renderQueue(); refreshStats();
+      }
+    });
+
+    list.appendChild(div);
+  });
+  refreshStats();
+}
+
+function changeQty(idx, delta) {
+  queue[idx].qty = Math.max(1, Math.min(10, queue[idx].qty + delta));
+  renderQueue();
+}
+
+function togglePause(idx) {
+  queue[idx].pause = !queue[idx].pause;
+  renderQueue();
+}
+
+function removeItem(idx) {
+  queue.splice(idx, 1);
+  renderQueue();
+  if (queue.length === 0) {
+    document.getElementById('btnToStep2').style.display = 'none';
+    hideStepsAfter(1);
+  }
+}
+
+function toggleQiBed(idx) {
+  const bed = document.getElementById('qiBed_' + idx);
+  bed.classList.toggle('open');
+}
+
+function toggleMiniCell(itemIdx, cellIdx) {
+  if (!queue[itemIdx].cells) {
+    // Clone global cells for this item
+    queue[itemIdx].cells = new Set(globalCells);
+  }
+  const c = queue[itemIdx].cells;
+  c.has(cellIdx) ? c.delete(cellIdx) : c.add(cellIdx);
+  renderQueue();
+}
+
+// ══════════════════════════════════════════════════
+// BED GRID (global)
+// ══════════════════════════════════════════════════
+const bedGridEl = document.getElementById('bedGrid');
+for (let row = 0; row < 4; row++) {
+  for (let col = 0; col < 4; col++) {
+    const idx = row * 4 + col;
+    const cell = document.createElement('div');
+    cell.className = 'bed-cell';
+    cell.dataset.idx = idx;
+    cell.onclick = () => { globalCells.has(idx) ? globalCells.delete(idx) : globalCells.add(idx); renderBed(); };
+    bedGridEl.appendChild(cell);
+  }
+}
+
+function renderBed() {
+  document.querySelectorAll('.bed-cell').forEach(c => c.classList.toggle('sel', globalCells.has(parseInt(c.dataset.idx))));
+  updateSweepInfo();
+}
+
+function selectAllCells() { for (let i=0;i<16;i++) globalCells.add(i); renderBed(); }
+function clearCells() { globalCells.clear(); renderBed(); }
+
+function getSweepXs(cells) {
+  const src = cells || globalCells;
+  const p = getPrinter();
+  const bedSize = p.bed, cellSize = p.cell;
+  if (src.size === 0) {
+    // Full bed sweep spread across 3 points
+    return [0, Math.round(bedSize / 2), bedSize];
+  }
+  const cols = new Set([...src].map(i => i % 4));
+  const passes = parseInt(document.getElementById('sweepPasses').value) || 2;
+  const minX = Math.max(0, Math.min(...cols) * cellSize - 5);
+  const maxX = Math.min(bedSize, (Math.max(...cols) + 1) * cellSize + 5);
+  const xs = [];
+  for (let i = 0; i <= passes; i++) xs.push(Math.round(minX + (maxX - minX) * (i / passes)));
+  return [...new Set(xs)];
+}
+
+function updateSweepInfo() {
+  const xs = getSweepXs();
+  const info = document.getElementById('sweepInfo');
+  info.innerHTML = globalCells.size === 0
+    ? 'Select zones or tap Auto-detect'
+    : `Sweep: <strong>${xs.map(x=>x+'mm').join(' → ')}</strong> · ${globalCells.size} zone${globalCells.size!==1?'s':''} selected`;
+}
+
+function autoDetect() {
+  const banner = document.getElementById('autoBanner');
+  const msg = document.getElementById('autoBannerMsg');
+  // Use first file in queue for detection
+  const src = queue[0]?.content;
+  if (!src) return;
+
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity, found=0;
+  const lines = src.split('\n');
+  for (const line of lines) {
+    if (!line.startsWith('G1') && !line.startsWith('G0')) continue;
+    if (!/E[\d.]/.test(line)) continue;
+    const xm = line.match(/X([\d.]+)/), ym = line.match(/Y([\d.]+)/);
+    if (!xm || !ym) continue;
+    const x = parseFloat(xm[1]), y = parseFloat(ym[1]);
+    if (x < minX) minX=x; if (x > maxX) maxX=x;
+    if (y < minY) minY=y; if (y > maxY) maxY=y;
+    found++;
+  }
+
+  if (!found || minX === Infinity) {
+    banner.className = 'auto-banner vis warn';
+    msg.textContent = '⚠ Could not detect print position — select zones manually';
+    return;
+  }
+
+  const bedSize = getPrinter().bed;
+  const cellSize = getPrinter().cell;
+  minX = Math.max(0,minX); maxX = Math.min(bedSize,maxX);
+  minY = Math.max(0,minY); maxY = Math.min(bedSize,maxY);
+  globalCells.clear();
+  for (let row=0; row<4; row++) {
+    for (let col=0; col<4; col++) {
+      const cxMin=col*cellSize, cxMax=(col+1)*cellSize;
+      const cyMin=(3-row)*cellSize, cyMax=(4-row)*cellSize;
+      if (maxX+5>cxMin && minX-5<cxMax && maxY+5>cyMin && minY-5<cyMax)
+        globalCells.add(row*4+col);
+    }
+  }
+  renderBed();
+  banner.className = 'auto-banner vis ok';
+  msg.textContent = `✓ Detected X:${Math.round(minX)}–${Math.round(maxX)}mm, Y:${Math.round(minY)}–${Math.round(maxY)}mm — ${globalCells.size} zone${globalCells.size!==1?'s':''} selected`;
+}
+
+// ══════════════════════════════════════════════════
+// STATISTICS
+// ══════════════════════════════════════════════════
+function refreshStats() {
+  if (!document.getElementById('statsPanel')) return;
+  const panel = document.getElementById('statsPanel');
+  if (queue.length === 0) { panel.classList.remove('visible'); return; }
+
+  const cd = parseInt(document.getElementById('cooldownMins').value) || 20;
+  const costPerKg = parseFloat(document.getElementById('filamentCost').value) || 20;
+
+  // Calculate totals
+  let totalPrints = 0, totalWeightG = 0, totalPrintMins = 0, totalEjects = 0;
+  let timeline = [];
+
+  queue.forEach(item => {
+    const prints = item.qty;
+    totalPrints += prints;
+    if (item.meta.weightG) totalWeightG += item.meta.weightG * prints;
+    if (item.meta.printMins) totalPrintMins += item.meta.printMins * prints;
+
+    for (let i = 0; i < prints; i++) {
+      const label = `${item.name} (${i+1}/${prints})`;
+      const mins = item.meta.printMins || 0;
+      timeline.push({ type: 'print', label, mins });
+      if (i < prints - 1 || queue.indexOf(item) < queue.length - 1) {
+        timeline.push({ type: 'eject', label: `Cooldown + eject`, mins: cd });
+        totalEjects++;
+      }
+      if (item.pause && i === prints - 1) {
+        timeline.push({ type: 'pause', label: `Manual pause`, mins: 0 });
+      }
+    }
+  });
+
+  const totalCooldownMins = totalEjects * cd;
+  const totalMins = totalPrintMins + totalCooldownMins;
+  const totalCost = (totalWeightG / 1000) * costPerKg;
+  const costPerPart = totalPrints > 0 ? totalCost / totalPrints : 0;
+
+  // Time saved vs manual (assume 10 min setup per print manually)
+  const manualMins = totalPrints * 10;
+  const savedMins = manualMins; // you don't have to babysit any of them
+
+  // Render stats grid
+  const statsGridEl = document.getElementById('statsGrid');
+  statsGridEl.innerHTML = `
+    <div class="stat"><span class="stat-val">${totalPrints}</span><span class="stat-lbl">Total Prints</span></div>
+    <div class="stat"><span class="stat-val yellow">${fmtTime(totalMins)}</span><span class="stat-lbl">Total Runtime</span></div>
+    <div class="stat"><span class="stat-val">${totalWeightG>0?totalWeightG.toFixed(0)+'g':'—'}</span><span class="stat-lbl">Filament Used</span></div>
+    <div class="stat"><span class="stat-val green">${totalCost>0?'€'+totalCost.toFixed(2):'—'}</span><span class="stat-lbl">Est. Material Cost</span></div>
+  `;
+
+  document.getElementById('statsSavings').innerHTML = totalPrints > 1
+    ? `💰 Cost per part: <strong>€${costPerPart.toFixed(2)}</strong> &nbsp;·&nbsp; 🕐 Time saved vs manual: <strong>~${fmtTime(savedMins)}</strong> of babysitting eliminated`
+    : `💰 Cost per part: <strong>${costPerPart > 0 ? '€'+costPerPart.toFixed(2) : '—'}</strong>`;
+
+  // Timeline (show first 8 entries)
+  const tlEl = document.getElementById('statsTimeline');
+  const shown = timeline.slice(0, 8);
+  let tlHtml = shown.map(t => {
+    const dotClass = t.type === 'print' ? 'print' : t.type === 'eject' ? 'eject' : 'pause';
+    const timeStr = t.mins > 0 ? fmtTime(t.mins) : 'until resumed';
+    return `<div class="tl-item"><div class="tl-dot ${dotClass}"></div><span class="tl-item-label">${t.label}</span><span class="tl-item-time">${timeStr}</span></div>`;
+  }).join('');
+  if (timeline.length > 8) tlHtml += `<div class="tl-item"><div class="tl-dot" style="background:var(--g400)"></div><span class="tl-item-label" style="color:rgba(255,255,255,0.3)">+ ${timeline.length-8} more steps...</span></div>`;
+  tlEl.innerHTML = tlHtml;
+
+  panel.classList.add('visible');
+}
+
+function fmtTime(mins) {
+  if (!mins || mins === 0) return '0m';
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? `${h}h${m>0?m+'m':''}` : `${m}m`;
+}
+
+// ══════════════════════════════════════════════════
+// ADVANCED TOGGLE
+// ══════════════════════════════════════════════════
+function toggleAdv() {
+  const panel = document.getElementById('advPanel');
+  const arrow = document.getElementById('advArrow');
+  const open = panel.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+// ══════════════════════════════════════════════════
+// ROOM TEMP WARNING
+// ══════════════════════════════════════════════════
+function checkRoomTemp() {
+  const t = parseInt(document.getElementById('roomTemp').value);
+  const w = document.getElementById('tempWarn');
+  w.innerHTML = t >= 22
+    ? `<div style="margin-top:8px;background:var(--warn-bg);border:1px solid rgba(217,119,6,0.35);border-radius:5px;padding:8px 11px;font-size:11px;color:var(--warn);font-family:var(--mono);">⚠ Room ≥22°C — parts stick more. Add 10–15 min to cooldown.</div>`
+    : '';
+}
+
+// ══════════════════════════════════════════════════
+// SUMMARY
+// ══════════════════════════════════════════════════
+function buildSummary() {
+  const cd = document.getElementById('cooldownMins').value;
+  const xs = getSweepXs();
+  const qSummary = queue.map(q => `${q.name} ×${q.qty}${q.pause?' [pause]':''}`).join(', ');
+  document.getElementById('summaryBox').innerHTML =
+    `<b>Queue:</b> ${qSummary || '—'}<br>` +
+    `<b>Cooldown:</b> ${cd} min · <b>Sweep X:</b> ${xs.join(', ')} mm · <b>Zones:</b> ${globalCells.size || 'full bed'}`;
+}
+
+function updateGenBtn() {
+  document.getElementById('btnGenerate').disabled = !document.getElementById('safetyCheck').checked;
+}
+
+// ══════════════════════════════════════════════════
+// EMAIL GATE
+// ══════════════════════════════════════════════════
+function checkGate(cb) {
+  if (emailUnlocked) { cb(); return; }
+  if (uploadCount < FREE_LIMIT) { uploadCount++; localStorage.setItem('mm_uploads', uploadCount); updateBadge(); cb(); return; }
+  document.getElementById('gateBg').classList.add('vis');
+  window._gateCb = cb;
+}
+
+function submitGate() {
+  const em = document.getElementById('gateEmail').value.trim();
+  if (!em || !em.includes('@')) { alert('Please enter a valid email.'); return; }
+  localStorage.setItem('mm_email', em);
+  emailUnlocked = true; uploadCount = 0;
+  localStorage.setItem('mm_uploads', '0');
+  updateBadge();
+  document.getElementById('gateBg').classList.remove('vis');
+  if (window._gateCb) window._gateCb();
+}
+
+// ══════════════════════════════════════════════════
+// GCODE PROCESSING
+// ══════════════════════════════════════════════════
+function parseGcodeSections(gcode) {
+  const SM = '; MACHINE_START_GCODE_END';
+  const EM = '; MACHINE_END_GCODE_START';
+  const si = gcode.indexOf(SM), ei = gcode.indexOf(EM);
+  if (si !== -1 && ei !== -1 && ei > si) {
+    return {
+      startup: gcode.slice(0, si + SM.length),
+      body: gcode.slice(si + SM.length, ei).trim(),
+      end: gcode.slice(ei).trim(),
+      isBambu: true
+    };
+  }
+  return { startup: '', body: gcode.trim(), end: '', isBambu: false };
+}
+
+function stripThumbnail(gcode) {
+  return gcode.replace(/; thumbnail begin[\s\S]*?; thumbnail end\n?/gi, '');
+}
+
+function stripExecutableBlockMarkers(gcode) {
+  // Strip ALL EXECUTABLE_BLOCK markers from anywhere in the gcode.
+  // We will re-add exactly one pair wrapping the entire final output.
+  return gcode
+    .replace(/^; EXECUTABLE_BLOCK_START\r?\n?/gm, '')
+    .replace(/^; EXECUTABLE_BLOCK_END\r?\n?/gm, '');
+}
+
+function injectThumbnail(gcode, dataUrl) {
+  if (!dataUrl) return gcode;
+  // Convert dataUrl to base64 string only (strip the "data:image/...;base64," prefix)
+  const base64 = dataUrl.split(',')[1];
+  if (!base64) return gcode;
+
+  // Wrap in Bambu thumbnail block — 160x120 small + 200x200 medium (both use same image)
+  // Bambu displays the first valid thumbnail it finds in the header
+  const thumbBlock =
+    `; thumbnail begin 160x120 ${base64.length}\n` +
+    base64.match(/.{1,76}/g).map(l => `; ${l}`).join('\n') + '\n' +
+    `; thumbnail end\n`;
+
+  // Insert right after the HEADER_BLOCK_END marker, or at top if not found
+  const marker = '; HEADER_BLOCK_END';
+  const idx = gcode.indexOf(marker);
+  if (idx !== -1) {
+    return gcode.slice(0, idx + marker.length) + '\n' + thumbBlock + gcode.slice(idx + marker.length);
+  }
+  return thumbBlock + gcode;
+}
+
+function buildRestartGcode(gcode, printMins, loopIndex) {
+  let bedTemp = 60, nozzleTemp = 220;
+  const bm = gcode.match(/M(?:190|140)\s+S(\d+)/);
+  const nm = gcode.match(/M(?:109|104)\s+S(2\d{2})/);
+  if (bm) bedTemp = parseInt(bm[1]);
+  if (nm) nozzleTemp = parseInt(nm[1]);
+  const optPrime = document.getElementById('optPrime').checked;
+  const optRunout = document.getElementById('optRunout').checked;
+  const remainStr = printMins > 0
+    ? `M73 P0 R${printMins}  ; reset progress + set time remaining`
+    : 'M73 P0 R0              ; reset progress display';
+
+  // Purge line Y offset: 5mm per loop so lines never stack
+  // loopIndex starts at 1 (loop 2 is first restart), so Y = loopIndex * 5
+  const purgeY = loopIndex * 5;
+
+  const lines = [
+    '; ===== MESHMINDS LOOP — RESTART =====',
+
+    // ── 1. Full home cycle first — printer MUST know its position before anything else ──
+    // This is critical. After a long cooldown and eject, the only safe thing is a full home.
+    'G28                   ; full home X Y Z — establish known position',
+    'G90                   ; absolute positioning',
+    'M83                   ; relative extruder',
+    'M220 S100             ; reset feedrate',
+    'M221 S100             ; reset flowrate',
+
+    // ── 2. Now heat up (homing works cold, heating after is fine) ──
+    `M140 S${bedTemp}      ; start heating bed`,
+    `M104 S${nozzleTemp}   ; start heating hotend`,
+    `M190 S${bedTemp}      ; wait for bed temp`,
+    `M109 S${nozzleTemp}   ; wait for hotend temp`,
+
+    // ── 3. Re-establish soft limits and position tracking ──
+    remainStr,
+    optRunout ? 'M412 S1               ; filament runout detection on' : '',
+    'M211 X0 Y0 Z0         ; soft endstop off (Bambu standard)',
+    'M975 S1               ; mech mode suppression on',
+    'M1007 S1              ; mass estimation on',
+    'G29.2 S1              ; re-enable ABL (use cached mesh)',
+    'G29.1 Z-0.02          ; re-apply Textured PEI Z offset',
+  ];
+
+  // ── 4. Purge line — only after confirmed home and hot nozzle ──
+  // Offset Y per loop so lines never stack on each other
+  if (optPrime) {
+    lines.push(
+      `; Purge line at Y${purgeY}mm — loop ${loopIndex + 1} (offset, no stacking)`,
+      `G1 X5 Y${purgeY} Z0.3 F5000`,
+      `G1 X60 E4 F1200      ; purge`,
+      `G1 Z5 F3000           ; lift after purge`
+    );
+  }
+
+  lines.push('; ===== RESTART COMPLETE — STARTING PRINT =====', '');
+  return lines.filter(l => l !== '').join('\n');
+}
+
+function buildEjectGcode(loopIdx, loopTotal, cells, opts) {
+  const { cd, speed, z, vib, coolHE, park, progCool, comments, bedHold } = opts;
+  const bedSize = getPrinter().bed;
+  const parkY = bedSize; // rear of bed
+  const parkX = 0;      // left side
+  const safeZ = 30;     // lift high enough to clear any reasonable print
+  const thisCd = progCool ? cd + loopIdx * 5 : cd;
+  const ms = thisCd * 60 * 1000;
+  const xs = getSweepXs(cells);
+  let g = '\n';
+  if (comments) g += `; ===== MESHMINDS EJECT (step ${loopIdx+1}/${loopTotal}) =====\n`;
+
+  // ── STEP 1: Immediately lift Z and move to safe park corner ──
+  // Do this FIRST before anything else — nozzle must leave the print now
+  g += `M400                  ; wait for all moves to finish\n`;
+  g += `G91                   ; relative positioning\n`;
+  g += `G1 Z${safeZ} F3000    ; lift nozzle ${safeZ}mm above print\n`;
+  g += `G90                   ; back to absolute\n`;
+  g += `G1 X${parkX} Y${parkY} F9000  ; move to safe rear corner immediately\n`;
+  g += `M400\n`;
+
+  // ── STEP 2: Now it's safe to cut temps and wait ──
+  g += `M140 S${bedHold > 0 ? bedHold : 0}  ; bed ${bedHold > 0 ? 'hold at ' + bedHold + '°C' : 'off'}\n`;
+  if (coolHE) g += `M104 S0              ; hotend off\n`;
+  g += `G4 P${ms}             ; wait ${thisCd} min for cooldown\n`;
+
+  // ── STEP 3: Vibrate plate to loosen parts (head is safely parked, not on print) ──
+  if (vib) {
+    g += `M970.3 Q1 A7 K0 O2                    ; vibrate plate (gentle)\n`;
+    g += `M970 Q0 A10 B50 C90 H15 K0 M20 O3    ; vibrate plate (strong)\n`;
+    g += `M400\n`;
+  }
+
+  // ── STEP 4: Lower nozzle and do eject sweep ──
+  g += `G28 Z                 ; re-home Z so we know exact position before sweep\n`;
+  g += `G1 Z10 F3000          ; raise to safe sweep height\n`;
+  xs.forEach(x => {
+    g += `G1 X${x} Y${parkY} F5000\n`;      // move to back at this X
+    g += `G1 Z${z}            ; lower nozzle for sweep\n`;
+    g += `G1 X${x} Y0 F${speed}  ; sweep forward — push parts off\n`;
+    g += `G1 X${x} Y${parkY} F5000  ; return to back\n`;
+    g += `G1 Z10\n`;                         // lift again
+  });
+
+  // ── STEP 5: Final park ──
+  g += `G1 Z20 F3000          ; lift clear\n`;
+  g += `G1 X${parkX} Y${parkY} F9000  ; park at rear corner\n`;
+
+  if (comments) g += `; ===== EJECT DONE =====\n`;
+  return g + '\n';
+}
+
+// ══════════════════════════════════════════════════
+// GENERATE
+// ══════════════════════════════════════════════════
+function handleGenerate() { checkGate(doGenerate); }
+
+function log(type, msg) {
+  const lw = document.getElementById('logWrap');
+  lw.classList.add('vis');
+  const d = document.createElement('div');
+  d.className = 'll ' + type;
+  d.textContent = ({ok:'✓',info:'→',warn:'⚠',err:'✗'}[type]||'·') + ' ' + msg;
+  lw.appendChild(d); lw.scrollTop = lw.scrollHeight;
+}
+
+function doGenerate() {
+  document.getElementById('logWrap').innerHTML = '';
+  document.getElementById('logWrap').classList.remove('vis');
+  document.getElementById('dlWrap').classList.remove('vis');
+
+  if (queue.length === 0) { log('err', 'Queue is empty.'); return; }
+
+  const opts = {
+    cd:       parseInt(document.getElementById('cooldownMins').value) || 20,
+    speed:    parseInt(document.getElementById('ejectSpeed').value) || 1000,
+    z:        parseFloat(document.getElementById('nozzleZ').value) || 0.2,
+    bedHold:  parseInt(document.getElementById('bedHoldTemp').value) || 0,
+    vib:      document.getElementById('optVibrate').checked,
+    coolHE:   document.getElementById('optCoolHotend').checked,
+    park:     document.getElementById('optParkHead').checked,
+    progCool: document.getElementById('optProgCool').checked,
+    comments: document.getElementById('optComments').checked,
+    strip:    document.getElementById('optStrip').checked,
+  };
+
+  // Flatten queue into ordered print jobs
+  const jobs = [];
+  queue.forEach((item, qi) => {
+    for (let i = 0; i < item.qty; i++) {
+      jobs.push({
+        content: item.content,
+        name: item.name,
+        cells: item.cells || globalCells,
+        printMins: item.meta.printMins || 0,
+        pause: item.pause && i === item.qty - 1 && qi < queue.length - 1
+      });
+    }
+  });
+
+  const bedSize = getPrinter().bed;
+  log('info', `Building queue: ${jobs.length} total prints across ${queue.length} file(s) · Printer: ${getPrinter().name}`);
+
+  let out = '';
+  let ejectIdx = 0;
+
+  jobs.forEach((job, ji) => {
+    const isFirst = ji === 0;
+    const isLast  = ji === jobs.length - 1;
+
+    // Process content: strip thumbnail if requested, then parse sections
+    let processedContent = job.content;
+    if (opts.strip) processedContent = stripThumbnail(processedContent);
+    // Inject custom thumbnail if provided (only into first job's startup)
+    if (isFirst && thumbDataUrl) processedContent = injectThumbnail(processedContent, thumbDataUrl);
+
+    const sections = parseGcodeSections(processedContent);
+
+    // Strip ALL EXECUTABLE_BLOCK markers from every section.
+    // We will wrap the entire final output in exactly ONE pair at the end.
+    // This is the only way to guarantee the firmware sees a single job entry.
+    const cleanStartup = stripExecutableBlockMarkers(sections.startup);
+    const cleanBody    = stripExecutableBlockMarkers(sections.body);
+    const cleanEnd     = stripExecutableBlockMarkers(sections.end || '');
+
+    if (opts.comments) out += `\n; ===== PRINT ${ji+1} OF ${jobs.length}: ${job.name} =====\n`;
+
+    if (isFirst) {
+      out += cleanStartup + '\n';
+      out += cleanBody + '\n';
+      log('ok', `Job 1 (${job.name}): full startup + print body appended${thumbDataUrl ? ' · thumbnail injected' : ''}`);
+    } else {
+      out += buildRestartGcode(job.content, job.printMins, ji);
+      out += cleanBody + '\n';
+      log('ok', `Job ${ji+1} (${job.name}): lightweight restart + print body appended`);
+    }
+
+    if (!isLast) {
+      if (job.pause) {
+        out += `\n; ===== MANUAL PAUSE =====\nM400\nM17\nM1002 gcode_claim_action : 0\n; Press resume on printer screen to continue\nM0 ; pause\n; ===== RESUME =====\n\n`;
+        log('info', `Manual pause inserted after ${job.name}`);
+      } else {
+        out += buildEjectGcode(ejectIdx, jobs.length - 1, job.cells, opts);
+        ejectIdx++;
+        log('ok', `Eject block ${ejectIdx} inserted (Y sweep to ${bedSize}mm)`);
+      }
+    } else {
+      // Final shutdown
+      const firstSections = parseGcodeSections(jobs[0].content);
+      const cleanFirstEnd = stripExecutableBlockMarkers(firstSections.end || '');
+      if (firstSections.isBambu && cleanFirstEnd) {
+        out += '\n' + cleanFirstEnd + '\n';
+      } else {
+        out += `\nM140 S0\nM104 S0\n`;
+        if (opts.park) out += `G1 X0 Y${bedSize} F5000\n`;
+        out += `M84\n`;
+      }
+      log('ok', `Final shutdown appended`);
+    }
+  });
+
+  const totalLines = out.split('\n').length;
+  const totalSize = new Blob([out]).size;
+
+  // Wrap the entire output in exactly ONE EXECUTABLE_BLOCK pair.
+  // Bambu firmware counts each EXECUTABLE_BLOCK_START as a separate job in the file list.
+  // By stripping all original markers and adding one pair here, the file appears exactly once.
+  out = `; EXECUTABLE_BLOCK_START\n` + out + `\n; EXECUTABLE_BLOCK_END\n`;
+
+  log('info', `Output: ${totalLines.toLocaleString()} lines · ${fmtBytes(totalSize)}`);
+  if (opts.strip) log('ok', 'Thumbnails stripped from all loops');
+  if (thumbDataUrl) log('ok', 'Custom thumbnail injected into gcode header');
+
+  const blob = new Blob([out], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const dl   = document.getElementById('btnDl');
+  dl.href    = url;
+  const fname = queue.length === 1
+    ? `${queue[0].name}_loop_x${queue[0].qty}.gcode`
+    : `meshminds_queue_${jobs.length}prints.gcode`;
+  dl.download = fname;
+  dl.textContent = `⬇ Download ${fname}`;
+  document.getElementById('dlWrap').classList.add('vis');
+  log('ok', 'Done! Ready to download.');
+  log('warn', 'Watch your printer carefully on the first run.');
+}
+
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+</script>
+</body>
+</html>
